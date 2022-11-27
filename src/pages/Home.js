@@ -1,6 +1,6 @@
-import { Button, ButtonGroup, FormControl, Input, FormLabel } from '@chakra-ui/react'
+import { Button, ButtonGroup, FormControl, Input, FormLabel, Flex, Box } from '@chakra-ui/react'
 import { useState } from 'react'
-import { generateProof } from "@semaphore-protocol/proof"
+// import { generateProof } from "@semaphore-protocol/proof"
 import { Identity } from "@semaphore-protocol/identity"
 import { useAccount, useConnect } from 'wagmi'
 import { InjectedConnector } from 'wagmi/connectors/injected'
@@ -25,10 +25,16 @@ function Home() {
 
     function createIdentity() {
       // address from address 
+      if (isConnected) {
+        console.log("isConnected")
+        // get the user to generate a deterministic identity
+        // const { trapdoor, nullifier, commitment } = new Identity(address);
+        // setUsers([...users , {"trapdoor": trapdoor, "nullifier": nullifier, "commitment": commitment}]);
+        
+      } else {
+        console.log("not connected to web3")
+      }
 
-      // get the user to generate a deterministic identity
-      const { trapdoor, nullifier, commitment } = new Identity(address);
-      setUsers([...users , {"trapdoor": trapdoor, "nullifier": nullifier, "commitment": commitment}]);
 
       // add to group
 
@@ -47,7 +53,7 @@ function Home() {
       const nonce = prevNonce + 1;
 
       // get address, generate the identity
-      const { trapdoor, nullifier, commitment } = new Identity(address);
+      // const { trapdoor, nullifier, commitment } = new Identity(address);
 
       // set form info - alr done
 
@@ -83,7 +89,8 @@ function Home() {
     // const identity2 = new Identity(identity.toString())
 
     return (
-      <div>
+      <Box>
+        <Box display='flex' flexDirection='column' alignItems='flex-start'>
         {
           (isConnected) ?  
           <div>Connected to {address} </div>
@@ -92,14 +99,13 @@ function Home() {
             Connect Wallet
           </Button>
         }
-        <Button onClick = {connect}>
-          Connect Wallet
-        </Button>
         <Button
           onClick={createIdentity}
         >
           Create Identity
         </Button>
+
+        </Box>
 
         <FormControl>
           <FormLabel>Target contract address</FormLabel>
@@ -116,7 +122,7 @@ function Home() {
             Init Transaction
         </Button>
         </FormControl>
-      </div>
+      </Box>
 
     );
   }
