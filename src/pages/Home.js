@@ -6,6 +6,7 @@ import {
   FormLabel,
   Flex,
   Box,
+  VStack
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { Identity } from "@semaphore-protocol/identity";
@@ -258,20 +259,21 @@ function Home() {
   console.log(queue)
 
   return (
-    <Box>
-      <Box display="flex" flexDirection="column" alignItems="flex-start">
+    <Box p={4}>
+      <VStack pb={4} spacing="10px" display="flex" flexDirection="column" alignItems="flex-start">
         {isConnected ? (
-          <div>
-            <div>Connected to {address} </div>
+          <Box>
+            <Box>Connected to {address} </Box>
             <Button onClick={disconnect}>Disconnect</Button>
-          </div>
+          </Box>
         ) : (
-          <Button onClick={connect}>Connect Wallet</Button>
+          <Button p={4} onClick={connect}>Connect Wallet</Button>
         )}
-        <Button onClick={createIdentity}>Create Identity</Button>
-      </Box>
+        <Button p={4} onClick={createIdentity}>Create Identity</Button>
+      </VStack>
 
       <FormControl>
+        <VStack spacing="10px" alignItems="flex-start">
         <FormLabel>Target contract address</FormLabel>
         <Input
           type="string"
@@ -297,6 +299,7 @@ function Home() {
           onChange={(event) => setOperation(event.target.value)}
         />
         <Button onClick={initTxn}>Init Transaction</Button>
+        </VStack>
       </FormControl>
 
       <Box>
