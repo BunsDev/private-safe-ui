@@ -165,7 +165,7 @@ function Home() {
 
     // TODO: not sure if we just get the group object returned to us
     // currRoot is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(identity, offchainGroup, currRoot, vote 
+    const fullProof = await generateProof(identity, offchainGroup, groupId, vote 
     //   {
     //   wasmFilePath,
     //   zkeyFilePath,
