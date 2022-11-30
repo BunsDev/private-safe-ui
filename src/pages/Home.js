@@ -26,6 +26,9 @@ import { ethers } from "ethers";
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
 
+import { useAtom } from 'jotai';
+import { queueAtom } from '../utils/atoms.js';
+
 function Home() {
   // we just need identity onboarding, and a button to signal, which generates proof
   // how does semaphore have unique nullifiers
@@ -39,7 +42,7 @@ function Home() {
   const [value, setValue] = useState(0);
   const [formData, setFormData] = useState("");
   const [operation, setOperation] = useState("");
-  const [queue, setQueue] = useState([]); // an array of dictionaries, ordered by when the transaction was added
+  const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
   const [nonce, setNonce] = useState(0);
   const [currRoot, setCurrRoot] = useState(-1)
   // {nonce, formInfo {to, value, data, operation}, roots [], nullifierHashes [], proofs [], voters [], }
