@@ -24,6 +24,7 @@ import { queueAtom, nonceAtom, groupAtom, groupIdAtom } from "../utils/atoms.js"
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
 import { ethers, utils } from "ethers";
+import { encodeSingle, TransactionType } from "ethers-multisend"
 
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
@@ -107,14 +108,29 @@ function QueuePage() {
     const to = txn.formInfo.target
 
     // wei u256 value in solidity, int in js
-    // TODO: big number?
-    const value = txn.formInfo.value
+    // users must pass in wei
+    const value = utils.BigNumber.from(txn.formInfo.value)
 
     // right now, we are just supporting simple eth transfers and calls without args
-    const args = txn.formInfo.args
-    args[2] = utils.BigNumber.from(args[2])
-
+    // otherwise, we would have to look through funcCall
     const funcCall = txn.formInfo.data
+
+    const args = txn.formInfo.args
+    // args[2] = utils.BigNumber.from(args[2])
+    args[2] = utils.formatEther(args[2])
+
+    const metaTxn = encodeSingle({
+        type: TransactionType.transferFunds,
+        id: "0", // not relevant for encoding the final transaction
+        // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
+        token: null,
+        to: args[1], // address of recipient
+        amount: args[2], // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+        decimals: 18 // decimal places of the token
+    })
+
+    const calldata = metaTxn.data
+
 
     // const abiCoder = utils.defaultAbiCoder
     // const encodedData = iface.encodeFunctionData(funcCall, encodedData)
@@ -126,8 +142,17 @@ function QueuePage() {
     }
 
     const execTxn = await moduleContract.executeTransaction(
-
+        to,
+        value,
+        calldata,
+        operation,
+        txn.roots,
+        txn.nullifierHashes,
+        txn.proofs,
+        txn.votes
     );
+
+    console.log(execTxn);
   }
 
   function getTransactionData(e, i) {
