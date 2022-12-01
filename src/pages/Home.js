@@ -6,12 +6,9 @@ import {
   FormLabel,
   Flex,
   Box,
-  VStack
+  VStack,
+  Textarea
 } from "@chakra-ui/react";
-import { useState } from "react";
-import { Identity } from "@semaphore-protocol/identity";
-const { Group } = require("@semaphore-protocol/group")
-import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import {
   chain,
   useAccount,
@@ -20,14 +17,22 @@ import {
   useContract,
   useSigner,
 } from "wagmi";
+import {
+  queueAtom,
+  nonceAtom,
+  groupAtom,
+  groupIdAtom,
+} from "../utils/atoms.js";
+import { useState } from "react";
+import { Identity } from "@semaphore-protocol/identity";
+const { Group } = require("@semaphore-protocol/group");
+import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { InjectedConnector } from "wagmi/connectors/injected";
 import { ethers } from "ethers";
-
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
+import { useAtom } from "jotai";
 
-import { useAtom } from 'jotai';
-import { queueAtom } from '../utils/atoms.js';
 
 function Home() {
   // we just need identity onboarding, and a button to signal, which generates proof
@@ -41,10 +46,13 @@ function Home() {
   const [target, setTarget] = useState("");
   const [value, setValue] = useState(0);
   const [formData, setFormData] = useState("");
+  const [args, setArgs] = useState([]);
   const [operation, setOperation] = useState("");
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
-  const [nonce, setNonce] = useState(0);
-  const [currRoot, setCurrRoot] = useState(-1)
+  const [nonce, setNonce] = useAtom(nonceAtom);
+  const [groupId, setGroupId] = useAtom(groupIdAtom);
+  const [group, setGroup] = useAtom(groupAtom);
+  const [currRoot, setCurrRoot] = useState(-1);
   // {nonce, formInfo {to, value, data, operation}, roots [], nullifierHashes [], proofs [], voters [], }
 
   // TODO: fix issues with network change
@@ -105,13 +113,16 @@ function Home() {
 
       console.log(addSigner);
 
-      const updateRoot = await semaphoreContract.on("MemberAdded", (groupId, index, identityCommitment, root) => {
-        console.log("updating root")
-        console.log(root)
-        setCurrRoot(root)
-      })
+      const updateRoot = await semaphoreContract.on(
+        "MemberAdded",
+        (groupId, index, identityCommitment, root) => {
+          console.log("updating root");
+          console.log(root);
+          setCurrRoot(root);
+        }
+      );
 
-      console.log(updateRoot)
+      console.log(updateRoot);
 
       // joinAsSigner?.(commitment, address);
       // if (isSuccess) {
@@ -131,7 +142,7 @@ function Home() {
     // Enum.Operation operation,
 
     // get prev nonce from the last element of queue
-    
+
     // const prevNonce = queue[queue.length - 1]["nonce"];
     // const nonce = prevNonce + 1;
 
@@ -148,34 +159,45 @@ function Home() {
 
     // TODO: get groupID from contract later
     // const groupId = await moduleContract.groupId();
-    const groupId = 13;
+    // const groupId = 13;
+    setGroupId(13);
 
     // don't think i need to use this then
-    console.log("semaphore contract")
-    console.log(semaphoreContract)
-    const group = await semaphoreContract.groups(groupId);
-    console.log(group);
+    console.log("semaphore contract");
+    console.log(semaphoreContract);
+    const currGroup = await semaphoreContract.groups(groupId);
+    console.log(currGroup);
 
     // TODO: make sure you retrieve initial root!
     if (currRoot == -1) {
-      console.log("error, cannot make calls with empty group, wait longer or add a mem")
+      console.log(
+        "error, cannot make calls with empty group, wait longer or add a mem"
+      );
     }
 
-    const offchainGroup = new Group()
-    const members = await moduleContract.queryFilter(moduleContract.filters.NewUser())
-    console.log(members)
-    offchainGroup.addMembers(members.map((e) => e.args[0].toString()))
+    const offchainGroup = new Group();
+    const members = await moduleContract.queryFilter(
+      moduleContract.filters.NewUser()
+    );
+    console.log(members);
+    offchainGroup.addMembers(members.map((e) => e.args[0].toString()));
+
+    setGroup(offchainGroup);
 
     // TODO: not sure if we just get the group object returned to us
     // currRoot is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(identity, offchainGroup, groupId, vote 
-    //   {
-    //   wasmFilePath,
-    //   zkeyFilePath,
-    // }
+    const fullProof = await generateProof(
+      identity,
+      offchainGroup,
+      groupId,
+      vote
+      //   {
+      //   wasmFilePath,
+      //   zkeyFilePath,
+      // }
     );
 
-    console.log(fullProof)
+    console.log(fullProof);
 
     // initialized merkleTreeRoots
     const treeRoots = [fullProof.publicSignals.merkleRoot];
@@ -190,16 +212,20 @@ function Home() {
     // initialized voters array
     const votes = [vote];
 
+    const sepArgs = args.split(",")
+    console.log(sepArgs)
+
     const txn = {
       nonce: nonce,
       formInfo: {
         target: target,
         value: value,
         data: formData,
+        args: sepArgs,
         operation: operation,
       },
       roots: treeRoots,
-      nullifierHahes: nulHashes,
+      nullifierHashes: nulHashes,
       proofs: proofs,
       voters: votes,
     };
@@ -207,113 +233,68 @@ function Home() {
     setQueue([...queue, txn]);
   }
 
-  async function signTxn(txnIndex) {
-
-    // get address, re-generate the identity
-    const identity = new Identity(address);
-    
-    const vote = ethers.utils.formatBytes32String(to + data);
-
-    const groupId = 13;
-
-    const group = await semaphoreContract.groups(groupId);
-    console.log(group);
-
-    // group.root is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(identity, group.root, groupId, vote, {
-      wasmFilePath,
-      zkeyFilePath,
-    });
-
-    const currTxn = queue[txnIndex]
-
-    // initialized merkleTreeRoots
-    const treeRoots = [...currTxn.roots, nullProof.publicSignals.merkleRoot];
-
-    // initialized nullifier hahshes
-    const nulHashes = [...currTxn.nullifierHashes, fullProof.publicSignals.nullifierHash];
-
-    // initialized proofs
-    const solidityProof = packToSolidityProof(fullProof.proof);
-    const proofs = [...currTxn.proofs, solidityProof];
-
-    // initialized voters array
-    const votes = [...currTxn.votes, vote];
-
-    const txn = {
-      nonce: currTxn.nonce,
-      formInfo: {
-        target: currTxn.formInfo.target,
-        value: currTxn.formInfo.value,
-        data: currTxn.formInfo.formData,
-        operation: currTxn.formInfo.operation,
-      },
-      roots: treeRoots,
-      nullifierHahes: nulHashes,
-      proofs: proofs,
-      voters: votes,
-    };
-
-    queue[txnIndex] = txn
-    setQueue(queue);
-  }
-
-  console.log("queue")
-  console.log(queue)
+  console.log("queue");
+  console.log(queue);
 
   return (
     <Box p={4}>
-      <VStack pb={4} spacing="10px" display="flex" flexDirection="column" alignItems="flex-start">
+      <VStack
+        pb={4}
+        spacing="10px"
+        display="flex"
+        flexDirection="column"
+        alignItems="flex-start"
+      >
         {isConnected ? (
           <Box>
             <Box>Connected to {address} </Box>
             <Button onClick={disconnect}>Disconnect</Button>
           </Box>
         ) : (
-          <Button p={4} onClick={connect}>Connect Wallet</Button>
+          <Button p={4} onClick={connect}>
+            Connect Wallet
+          </Button>
         )}
-        <Button p={4} onClick={createIdentity}>Create Identity</Button>
+        <Button p={4} onClick={createIdentity}>
+          Create Identity
+        </Button>
       </VStack>
 
       <FormControl>
         <VStack spacing="10px" alignItems="flex-start">
-        <FormLabel>Target contract address</FormLabel>
-        <Input
-          type="string"
-          value={target}
-          onChange={(event) => setTarget(event.target.value)}
-        />
-        <FormLabel>Value</FormLabel>
-        <Input
-          type="number"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <FormLabel>Data</FormLabel>
-        <Input
-          type="string"
-          value={formData}
-          onChange={(event) => setFormData(event.target.value)}
-        />
-        <FormLabel>Operation</FormLabel>
-        <Input
-          type="string"
-          value={operation}
-          onChange={(event) => setOperation(event.target.value)}
-        />
-        <Button onClick={initTxn}>Init Transaction</Button>
+          <FormLabel>Target contract address</FormLabel>
+          <Input
+            type="string"
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+          />
+          <FormLabel>Value</FormLabel>
+          <Input
+            type="number"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <FormLabel>Data</FormLabel>
+          <Input
+            type="string"
+            value={formData}
+            onChange={(event) => setFormData(event.target.value)}
+          />
+          <FormLabel>Arguments</FormLabel>
+          <Textarea 
+            placeholder='Separate arguments by comma, no space!'
+            value={args}
+            onChange={(event) => setArgs(event.target.value)}
+          />
+          <FormLabel>Operation</FormLabel>
+          <Input
+            type="string"
+            value={operation}
+            onChange={(event) => setOperation(event.target.value)}
+          />
+          <Button onClick={initTxn}>Init Transaction</Button>
         </VStack>
       </FormControl>
-
-      <Box>
-        {
-          queue.map((e) => {
-            <Box>
-
-            </Box>
-          })
-        }
-      </Box>
     </Box>
   );
 }
