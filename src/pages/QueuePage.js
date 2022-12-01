@@ -26,6 +26,8 @@ import { Identity } from "@semaphore-protocol/identity";
 import { ethers, utils } from "ethers";
 import { encodeSingle, TransactionType } from "ethers-multisend"
 
+import privateModule from "../utils/PrivateModule.js";
+
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
   const [nonce, setNonce] = useAtom(nonceAtom);
@@ -33,6 +35,7 @@ function QueuePage() {
   const [groupId, setGroupId] = useAtom(groupIdAtom);
 
   const { address, isConnected } = useAccount();
+  const { data: signer, isError, isLoading } = useSigner();
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
@@ -108,8 +111,11 @@ function QueuePage() {
     const to = txn.formInfo.target
 
     // wei u256 value in solidity, int in js
-    // users must pass in wei
-    const value = utils.BigNumber.from(txn.formInfo.value)
+    // TODO: users must pass in wei - if not eth transfer ??? 
+    // const value = ethers.BigNumber.from(txn.formInfo.value)
+
+    const value = utils.formatEther(txn.formInfo.value)
+    console.log(value)
 
     // right now, we are just supporting simple eth transfers and calls without args
     // otherwise, we would have to look through funcCall
@@ -117,15 +123,17 @@ function QueuePage() {
 
     const args = txn.formInfo.args
     // args[2] = utils.BigNumber.from(args[2])
-    args[2] = utils.formatEther(args[2])
+    // args[2] = utils.formatEther(args[2])
 
+    // just an ETH transfer
+    // TODO: no hardcode value
     const metaTxn = encodeSingle({
         type: TransactionType.transferFunds,
         id: "0", // not relevant for encoding the final transaction
         // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
         token: null,
-        to: args[1], // address of recipient
-        amount: args[2], // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+        to: to, // address of recipient
+        amount: "1.0", // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
         decimals: 18 // decimal places of the token
     })
 
@@ -141,15 +149,24 @@ function QueuePage() {
         operation = 1;
     }
 
+    console.log(to)
+    console.log(value)
+    console.log(calldata)
+    console.log(operation)
+    console.log(txn.roots)
+    console.log(txn.nullifierHashes)
+    console.log(txn.proofs)
+    console.log(txn.voters)
+
     const execTxn = await moduleContract.executeTransaction(
         to,
-        value,
+        metaTxn.value,
         calldata,
         operation,
         txn.roots,
         txn.nullifierHashes,
         txn.proofs,
-        txn.votes
+        txn.voters
     );
 
     console.log(execTxn);
@@ -191,7 +208,7 @@ function QueuePage() {
         </HStack>
         <HStack spacing="10px">
           <Button onClick={() => signTxn(e, i)}>Sign</Button>
-          <Button>Execute</Button>
+          <Button onClick={() => executeTransaction(e, i)}>Execute</Button>
         </HStack>
       </VStack>
     );

@@ -46,7 +46,7 @@ function Home() {
   const [target, setTarget] = useState("");
   const [value, setValue] = useState(0);
   const [formData, setFormData] = useState("");
-  const [args, setArgs] = useState([]);
+  const [args, setArgs] = useState("");
   const [operation, setOperation] = useState("");
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
   const [nonce, setNonce] = useAtom(nonceAtom);
@@ -214,7 +214,8 @@ function Home() {
 
     const sepArgs = args.split(",")
     console.log(sepArgs)
-
+    
+    // for eth transaction, we only need value, target, and operation
     const txn = {
       nonce: nonce,
       formInfo: {
