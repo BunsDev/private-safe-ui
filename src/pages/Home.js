@@ -210,7 +210,7 @@ function Home() {
 
       <FormControl>
         <VStack spacing="10px" alignItems="flex-start">
-        <RadioGroup onChange={setValue} value={value}>
+        <RadioGroup onChange={setTxnType} value={txnType}>
           <Stack direction='row'>
             <Radio value='ETH'>ETH Transfer</Radio>
             <Radio value='ERC20'>ERC20 Transfer</Radio>

@@ -144,12 +144,41 @@ function QueuePage() {
             // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
             token: null,
             to: to, // address of recipient
-            amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+            amount: "1.0", // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
             decimals: 18 // decimal places of the token
         })
+
+        const operation = 0;
+        // if (txn.formInfo.operation == "delegatecall") {
+        //     operation = 1;
+        // }
         const currCalldata = metaTxn.data
         setCalldata(currCalldata)
+        console.log(to)
+        console.log(metaTxn.value)
+        console.log(currCalldata)
+        console.log(operation)
+        console.log(txn.roots)
+        console.log(txn.nullifierHashes)
+        console.log(txn.proofs)
+        console.log(txn.voters)
+
+        const execTxn = await moduleContract.executeTransaction(
+            to,
+            metaTxn.value,
+            // "1.0",
+            currCalldata,
+            operation,
+            txn.roots,
+            txn.nullifierHashes,
+            txn.proofs,
+            txn.voters,
+            {gasLimit: 35000}
+        );
+
+        console.log(execTxn);
     } else {
+        console.log(type)
         console.log("wrong type")
     }
     const funcCall = txn.formInfo.data
@@ -162,33 +191,6 @@ function QueuePage() {
     // const encodedData = iface.encodeFunctionData(funcCall, encodedData)
     // TODO: better way of dealing with this
     // 0 is call, 1 is delegatecall
-    const operation = 0;
-    if (txn.formInfo.operation == "delegatecall") {
-        operation = 1;
-    }
-
-    console.log(to)
-    console.log(value)
-    console.log(calldata)
-    console.log(operation)
-    console.log(txn.roots)
-    console.log(txn.nullifierHashes)
-    console.log(txn.proofs)
-    console.log(txn.voters)
-
-    const execTxn = await moduleContract.executeTransaction(
-        to,
-        metaTxn.value,
-        calldata,
-        operation,
-        txn.roots,
-        txn.nullifierHashes,
-        txn.proofs,
-        txn.voters,
-        {gasLimit: 35000}
-    );
-
-    console.log(execTxn);
   }
 
   function getTransactionData(e, i) {
