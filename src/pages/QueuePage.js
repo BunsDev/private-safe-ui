@@ -173,7 +173,7 @@ function QueuePage() {
             txn.nullifierHashes,
             txn.proofs,
             txn.voters,
-            {gasLimit: 35000}
+            {gasLimit: 350000}
         );
 
         console.log(execTxn);
