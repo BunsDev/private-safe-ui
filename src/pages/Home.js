@@ -110,10 +110,9 @@ function Home() {
 
     const vote = ethers.utils.formatBytes32String(nonce);
 
-    // TODO: get groupID from contract later
-    // const groupId = await moduleContract.groupId();
-    // const groupId = 13;
-    setGroupId(13);
+    const gId = await moduleContract.groupId();
+    console.log(gId)
+    setGroupId(gId);
 
     // don't think i need to use this then
     console.log("semaphore contract");
