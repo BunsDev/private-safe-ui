@@ -1,25 +1,19 @@
 import {
   Button,
-  ButtonGroup,
-  FormControl,
-  Input,
-  FormLabel,
-  Flex,
   Box,
   VStack,
   HStack,
   GridItem,
 } from "@chakra-ui/react";
 import {
-  chain,
   useAccount,
-  useConnect,
-  useDisconnect,
   useContract,
   useSigner,
 } from "wagmi";
 import { useAtom } from "jotai";
 import { queueAtom, nonceAtom, groupAtom, groupIdAtom } from "../utils/atoms.js";
+
+import { useState } from "react";
 
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
@@ -33,13 +27,14 @@ function QueuePage() {
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [group, setGroup] = useAtom(groupAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
+  const [calldata, setCalldata] = useState("");
 
   const { address, isConnected } = useAccount();
-  const { data: signer, isError, isLoading } = useSigner();
+  const { data: signer } = useSigner();
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
-    address: "0xCb044fdcdbE8F20CEF7Fa89B4d05A522af278a40",
+    address: "0x61842C85d11a87df0D037d8Ee8BDA4469e5c1CDE",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -114,31 +109,54 @@ function QueuePage() {
     // TODO: users must pass in wei - if not eth transfer ??? 
     // const value = ethers.BigNumber.from(txn.formInfo.value)
 
-    const value = utils.formatEther(txn.formInfo.value)
+    // const value = utils.formatEther(txn.formInfo.value)
+    const value = txn.formInfo.value
     console.log(value)
 
     // right now, we are just supporting simple eth transfers and calls without args
     // otherwise, we would have to look through funcCall
+
+    const a = txn.formInfo.args
+
+    const type = txn.formInfo.type 
+    if (type == "ERC20") {
+        const metaTxn = encodeSingle({
+            type: TransactionType.transferFunds,
+            id: "0", // not relevant for encoding the final transaction
+            // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
+            token: to,
+            to: a[0], // address of recipient
+            // TODO: for ERC20 transfers, do they have an ETH value associated with them?
+            amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+            decimals: txn.formInfo.decimals // decimal places of the token
+        })
+        const currCalldata = metaTxn.data
+        setCalldata(currCalldata)
+
+    } else if (type == "ERC721") {
+
+    } else if (type == "contract") {
+
+    } else if (type == "ETH") {
+        const metaTxn = encodeSingle({
+            type: TransactionType.transferFunds,
+            id: "0", // not relevant for encoding the final transaction
+            // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
+            token: null,
+            to: to, // address of recipient
+            amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+            decimals: 18 // decimal places of the token
+        })
+        const currCalldata = metaTxn.data
+        setCalldata(currCalldata)
+    } else {
+        console.log("wrong type")
+    }
     const funcCall = txn.formInfo.data
 
     const args = txn.formInfo.args
     // args[2] = utils.BigNumber.from(args[2])
     // args[2] = utils.formatEther(args[2])
-
-    // just an ETH transfer
-    // TODO: no hardcode value
-    const metaTxn = encodeSingle({
-        type: TransactionType.transferFunds,
-        id: "0", // not relevant for encoding the final transaction
-        // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
-        token: null,
-        to: to, // address of recipient
-        amount: "1.0", // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
-        decimals: 18 // decimal places of the token
-    })
-
-    const calldata = metaTxn.data
-
 
     // const abiCoder = utils.defaultAbiCoder
     // const encodedData = iface.encodeFunctionData(funcCall, encodedData)
@@ -166,7 +184,8 @@ function QueuePage() {
         txn.roots,
         txn.nullifierHashes,
         txn.proofs,
-        txn.voters
+        txn.voters,
+        {gasLimit: 35000}
     );
 
     console.log(execTxn);
