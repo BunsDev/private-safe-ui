@@ -15,12 +15,13 @@ import { queueAtom, nonceAtom, groupAtom, groupIdAtom } from "../utils/atoms.js"
 
 import { useState } from "react";
 
-import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
+import { packToSolidityProof, generateProof, verifyProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
 import { ethers, utils } from "ethers";
 import { encodeSingle, TransactionType } from "ethers-multisend"
 
 import privateModule from "../utils/PrivateModule.js";
+import semaphoreJson from "../sema/semaphore.json";
 
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
@@ -34,7 +35,7 @@ function QueuePage() {
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
-    address: "0x61842C85d11a87df0D037d8Ee8BDA4469e5c1CDE",
+    address: "0x3818aC507F4a9eCC288569d17DC22911f95F2da0",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -118,8 +119,10 @@ function QueuePage() {
 
     const a = txn.formInfo.args
 
-    const type = txn.formInfo.type 
+    // const type = txn.formInfo.type 
+    const type = "ETH"
     if (type == "ERC20") {
+        // have user pass in info about erc20 token decimals + recipient
         const metaTxn = encodeSingle({
             type: TransactionType.transferFunds,
             id: "0", // not relevant for encoding the final transaction
@@ -134,9 +137,28 @@ function QueuePage() {
         setCalldata(currCalldata)
 
     } else if (type == "ERC721") {
+        // have user pass in recipient + tokenId
+        const metaTxn = encodeSingle({
+            type: TransactionType.transferCollectible,
+            id: "0", // not relevant for encoding the final transaction
+            address: to, // ERC721 contract address
+            tokenId: string, // ID of the NFT
+            to: string, // address of recipient
+            // TODO: not sure about this address ,\.... safe
+            from: address // address of sender
+        })
 
     } else if (type == "contract") {
-
+        // TODO: take in ABI as input
+        const metaTxn = encodeSingle({
+          type: TransactionType.callContract,
+          id: "0", // not relevant for encoding the final transaction
+          to: to, // contract address
+          value: value, // amount of wei to send
+          abi: string, // ABI as JSON string
+          functionSignature: string,
+          // inputValues: { [key: string]: ValueType }
+      })
     } else if (type == "ETH") {
         const metaTxn = encodeSingle({
             type: TransactionType.transferFunds,
@@ -163,18 +185,36 @@ function QueuePage() {
         console.log(txn.proofs)
         console.log(txn.voters)
 
-        const execTxn = await moduleContract.executeTransaction(
-            to,
-            metaTxn.value,
-            // "1.0",
-            currCalldata,
-            operation,
-            txn.roots,
-            txn.nullifierHashes,
-            txn.proofs,
-            txn.voters,
-            {gasLimit: 350000}
-        );
+        const verificationKey = JSON.parse(JSON.stringify(semaphoreJson))
+        for (var i = 0; i < txn.proofs.length; i++) {
+          const result = await verifyProof(verificationKey, txn.proofs[i]) 
+          console.log(result)
+        }
+
+        /*
+        address to, // this is the target address, eg if you want the txn to push a button, this is the button
+        // for us, don't we want the target to be anything?
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+
+        uint256[] memory merkleTreeRoots,
+        uint256[] memory nullifierHashes,
+        uint256[8][] memory proofs,
+        bytes32[] memory votes
+        */
+        // const execTxn = await moduleContract.executeTransaction(
+        //     to,
+        //     metaTxn.value,
+        //     // "1.0",
+        //     currCalldata,
+        //     operation,
+        //     txn.roots,
+        //     txn.nullifierHashes,
+        //     txn.proofs,
+        //     txn.voters,
+        //     {gasLimit: 350000}
+        // );
 
         console.log(execTxn);
     } else {

@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { Identity } from "@semaphore-protocol/identity";
 const { Group } = require("@semaphore-protocol/group");
+import { Subgraph } from "@semaphore-protocol/subgraph"
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { InjectedConnector } from "wagmi/connectors/injected";
 import { ethers } from "ethers";
@@ -58,7 +59,7 @@ function Home() {
   const { data: signer } = useSigner();
 
   const moduleContract = useContract({
-    address: "0x61842C85d11a87df0D037d8Ee8BDA4469e5c1CDE",
+    address: "0x3818aC507F4a9eCC288569d17DC22911f95F2da0",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -79,7 +80,9 @@ function Home() {
       // add to group
       console.log(moduleContract);
       const signedId = signer.signMessage(commitment);
-      const b32user = ethers.utils.formatBytes32String(signedId);
+      const b32user = ethers.utils.formatBytes32String(signedId
+        
+        );
 
       const addSigner = await moduleContract.joinAsSigner(
         commitment,
@@ -128,13 +131,26 @@ function Home() {
     }
 
     const offchainGroup = new Group();
-    const members = await moduleContract.queryFilter(
+    const members1 = await moduleContract.queryFilter(
       moduleContract.filters.NewUser()
     );
-    console.log(members);
-    offchainGroup.addMembers(members.map((e) => e.args[0].toString()));
+    console.log(members1);
+    offchainGroup.addMembers(members1.map((e) => e.args[0].toString()));
 
     setGroup(offchainGroup);
+    console.log("old group with mems added")
+    console.log(offchainGroup)
+    
+    const newGroup = new Group();
+    const subgraph = new Subgraph("goerli")
+    const { members } = await subgraph.getGroup(gId.toString(), { members: true })
+    console.log(members)
+    console.log(subgraph)
+    console.log(gId.toString())
+    newGroup.addMembers(members)
+
+    console.log("new group with mems added")
+    console.log(newGroup)
 
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(
@@ -154,7 +170,7 @@ function Home() {
 
     // initialized proofs
     const solidityProof = packToSolidityProof(fullProof.proof);
-    const proofs = [solidityProof];
+    const proofs = [fullProof];
 
     // initialized voters array
     const votes = [vote];
@@ -219,7 +235,7 @@ function Home() {
           </Stack>
         </RadioGroup>
         {
-          (value == "ERC20") ? 
+          (txnType == "ERC20") ? 
             <Box>
               <FormLabel>Decimals</FormLabel>
               <Input 
