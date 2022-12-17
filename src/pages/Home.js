@@ -170,7 +170,7 @@ function Home() {
 
     // initialized proofs
     const solidityProof = packToSolidityProof(fullProof.proof);
-    const proofs = [fullProof];
+    const proofs = [solidityProof];
 
     // initialized voters array
     const votes = [vote];
