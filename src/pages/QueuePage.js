@@ -185,11 +185,12 @@ function QueuePage() {
         console.log(txn.proofs)
         console.log(txn.voters)
 
-        const verificationKey = JSON.parse(JSON.stringify(semaphoreJson))
-        for (var i = 0; i < txn.proofs.length; i++) {
-          const result = await verifyProof(verificationKey, txn.proofs[i]) 
-          console.log(result)
-        }
+        // ******* off-chain verification **********
+        // const verificationKey = JSON.parse(JSON.stringify(semaphoreJson))
+        // for (var i = 0; i < txn.proofs.length; i++) {
+        //   const result = await verifyProof(verificationKey, txn.proofs[i]) 
+        //   console.log(result)
+        // }
 
         /*
         address to, // this is the target address, eg if you want the txn to push a button, this is the button
@@ -203,18 +204,18 @@ function QueuePage() {
         uint256[8][] memory proofs,
         bytes32[] memory votes
         */
-        // const execTxn = await moduleContract.executeTransaction(
-        //     to,
-        //     metaTxn.value,
-        //     // "1.0",
-        //     currCalldata,
-        //     operation,
-        //     txn.roots,
-        //     txn.nullifierHashes,
-        //     txn.proofs,
-        //     txn.voters,
-        //     {gasLimit: 350000}
-        // );
+        const execTxn = await moduleContract.executeTransaction(
+            to,
+            metaTxn.value,
+            // "1.0",
+            currCalldata,
+            operation,
+            txn.roots,
+            txn.nullifierHashes,
+            txn.proofs,
+            txn.voters,
+            {gasLimit: 350000}
+        );
 
         console.log(execTxn);
     } else {
