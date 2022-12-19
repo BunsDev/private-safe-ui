@@ -29,8 +29,9 @@ export const onSubmit = (txn) => {
 
 // called when a user signs the transaction, we will have the id in the transaction object they can select from on QueuePage
 export const onUpdate = (id, roots, nulHashes, proofs, voters) => {
-  let item = { roots, nullifier_hashes: nulHashes, proofs, voters };
-  api.patch(`/${id}/`, item).then((res) => refreshMovies());
+  const t = { roots, nullifier_hashes: nulHashes, proofs, voters };
+  const item = JSON.stringify(t);
+  api.patch(`update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
 };
 
 export const onDelete = (id) => {

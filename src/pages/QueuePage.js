@@ -22,6 +22,7 @@ import { encodeSingle, TransactionType } from "ethers-multisend"
 import privateModule from "../utils/PrivateModule.js";
 import semaphoreJson from "../sema/semaphore.json";
 import api from "../helpers/api.js";
+import { onUpdate } from "../helpers/database.js"
 
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
@@ -69,6 +70,11 @@ function QueuePage() {
 
     const vote = ethers.utils.formatBytes32String(nonce);
 
+    // TODO: don't rely on react state for group, groupId, or nonce
+    console.log(group)
+    console.log(groupId)
+    console.log(nonce)
+
     // group.root is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, group, groupId, vote);
     console.log(fullProof);
@@ -78,7 +84,7 @@ function QueuePage() {
 
     // initialized nullifier hahshes
     const nulHashes = [
-      ...txn.nullifierHashes,
+      ...txn.nullifier_hashes,
       fullProof.publicSignals.nullifierHash,
     ];
 
@@ -87,18 +93,23 @@ function QueuePage() {
     const proofs = [...txn.proofs, solidityProof];
 
     // initialized voters array
-    const votes = [...txn.voters, vote];
+    const voters = [...txn.voters, vote];
 
     const newTxn = {
       ...txn,
       roots: treeRoots,
       nullifierHashes: nulHashes,
       proofs: proofs,
-      voters: votes,
+      voters: voters,
     };
 
     queue[txnIndex] = newTxn;
     setQueue(queue);
+
+    // make a post request, updating the transaction in the database
+    // id, roots, nulHashes, proofs, voters
+    const pk = transactions[txnIndex].pk
+    onUpdate(pk, treeRoots, nulHashes, proofs, voters);
   }
 
   // this function just has to fix inputs, and call the execute transaction function
@@ -234,13 +245,13 @@ function QueuePage() {
       >
         <HStack spacing="10px" borderStyle="solid" borderColor="grey">
           <Box>{e.nonce}</Box>
-          <Box>{e.form.target}</Box>
-          <Box>{e.form.data}</Box>
+          <Box>{e.target}</Box>
+          <Box>{e.calldata}</Box>
           <Box>{e.voters.length} signers</Box>
         </HStack>
         <HStack spacing="10px" borderStyle="solid" borderColor="grey">
-          <Box>{e.form.operation}</Box>
-          <Box>{e.form.value}</Box>
+          <Box>{e.operation}</Box>
+          <Box>{e.value}</Box>
         </HStack>
         <HStack spacing="10px">
           <Button onClick={() => signTxn(e, i)}>Sign</Button>
@@ -250,7 +261,7 @@ function QueuePage() {
     );
   }
 
-  return <Box p={6}>{queue.map(getTransactionData)}</Box>;
+  return <Box p={6}>{transactions.map(getTransactionData)}</Box>;
 }
 
 export default QueuePage;
