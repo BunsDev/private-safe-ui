@@ -12,7 +12,7 @@ import {
 import { useAtom } from "jotai";
 import { queueAtom, nonceAtom, groupAtom, groupIdAtom } from "../utils/atoms.js";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { packToSolidityProof, generateProof, verifyProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
@@ -21,16 +21,20 @@ import { encodeSingle, TransactionType } from "ethers-multisend"
 
 import privateModule from "../utils/PrivateModule.js";
 import semaphoreJson from "../sema/semaphore.json";
+import api from "../helpers/api.js";
 
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [group, setGroup] = useAtom(groupAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
+  const [transactions, setTransactions] = useState([])
   const [calldata, setCalldata] = useState("");
 
   const { address, isConnected } = useAccount();
   const { data: signer } = useSigner();
+
+  console.log(transactions)
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
@@ -38,6 +42,26 @@ function QueuePage() {
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
+
+  useEffect(() => {
+    refreshSafeTransactions();
+  }, []);
+
+  // refetch the transactions in the safe for display, use in a useEffect call
+  const refreshSafeTransactions = () => {
+    api
+      .get("/")
+      .then((res) => {
+        console.log("got response");
+        console.log(res.data)
+        setTransactions(res.data)
+        // here, return res.data is undefined even tho console.log works
+        // return res.data;
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
 
   async function signTxn(txn, txnIndex) {
     // get address, re-generate the identity
@@ -81,19 +105,19 @@ function QueuePage() {
   async function executeTransaction(txn, txnIndex) {
 
     // address val in solidity, string val in js
-    const to = txn.formInfo.target
+    const to = txn.form.target
 
     // wei u256 value in solidity, int in js
     // TODO: users must pass in wei - if not eth transfer ??? 
-    // const value = ethers.BigNumber.from(txn.formInfo.value)
+    // const value = ethers.BigNumber.from(txn.form.value)
 
-    // const value = utils.formatEther(txn.formInfo.value)
-    const value = txn.formInfo.value
+    // const value = utils.formatEther(txn.form.value)
+    const value = txn.form.value
     console.log(value)
 
-    const a = txn.formInfo.args
+    const a = txn.form.args
 
-    const type = txn.formInfo.type 
+    const type = txn.form.type 
     console.log('printing queuepage txn type')
     console.log(type)
 
@@ -107,7 +131,7 @@ function QueuePage() {
             to: a[0], // address of recipient
             // TODO: for ERC20 transfers, do they have an ETH value associated with them?
             amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
-            decimals: txn.formInfo.decimals // decimal places of the token
+            decimals: txn.form.decimals // decimal places of the token
         })
         const currCalldata = metaTxn.data
         setCalldata(currCalldata)
@@ -147,7 +171,7 @@ function QueuePage() {
         })
 
         const operation = 0;
-        // if (txn.formInfo.operation == "delegatecall") {
+        // if (txn.form.operation == "delegatecall") {
         //     operation = 1;
         // }
         const currCalldata = metaTxn.data
@@ -183,9 +207,9 @@ function QueuePage() {
         console.log(type)
         console.log("wrong type")
     }
-    const funcCall = txn.formInfo.data
+    const funcCall = txn.form.data
 
-    const args = txn.formInfo.args
+    const args = txn.form.args
     // args[2] = utils.BigNumber.from(args[2])
     // args[2] = utils.formatEther(args[2])
 
@@ -210,13 +234,13 @@ function QueuePage() {
       >
         <HStack spacing="10px" borderStyle="solid" borderColor="grey">
           <Box>{e.nonce}</Box>
-          <Box>{e.formInfo.target}</Box>
-          <Box>{e.formInfo.data}</Box>
+          <Box>{e.form.target}</Box>
+          <Box>{e.form.data}</Box>
           <Box>{e.voters.length} signers</Box>
         </HStack>
         <HStack spacing="10px" borderStyle="solid" borderColor="grey">
-          <Box>{e.formInfo.operation}</Box>
-          <Box>{e.formInfo.value}</Box>
+          <Box>{e.form.operation}</Box>
+          <Box>{e.form.value}</Box>
         </HStack>
         <HStack spacing="10px">
           <Button onClick={() => signTxn(e, i)}>Sign</Button>

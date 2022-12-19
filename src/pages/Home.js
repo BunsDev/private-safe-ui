@@ -34,7 +34,8 @@ import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
 import { useAtom } from "jotai";
 
-import api from "../utils/api.js";
+import {getCalldata} from "../helpers/txnInputs"
+import {onSubmit, refreshSafeTransactions} from "../helpers/database"
 
 function Home() {
   const [target, setTarget] = useState("");
@@ -70,6 +71,8 @@ function Home() {
     abi: semaphore,
     signerOrProvider: signer,
   });
+
+  const safe = "0xC3ACf93b1AAA0c65ffd484d768576F4ce106eB4f";
 
   async function createIdentity() {
     if (isConnected) {
@@ -145,7 +148,7 @@ function Home() {
     const proofs = [solidityProof];
 
     // initialized voters array
-    const votes = [vote];
+    const voters = [vote];
 
     const sepArgs = args.split(",");
     console.log(sepArgs);
@@ -154,12 +157,14 @@ function Home() {
     // data is function selector
     console.log("printing txnType")
     console.log(txnType)
+
     const txn = {
+      safe: safe,
       nonce: nonce,
-      formInfo: {
+      form: {
         target: target,
         value: value,
-        data: func,
+        data: null,
         args: sepArgs,
         operation: operation,
         type: txnType,
@@ -168,26 +173,18 @@ function Home() {
       roots: treeRoots,
       nullifierHashes: nulHashes,
       proofs: proofs,
-      voters: votes,
+      voters: voters,
     };
+
+    // generate and update data field of txn
+    const calldata = getCalldata(txn);
+    txn['form']['data'] = calldata;
 
     setQueue([...queue, txn]);
 
     // make a post request, initializing the transaction in the database
-    // TODO: get calldata here, we're going to have to do a lot of code cleanup
-    // let t = {
-    //   to: target,
-    //   target: target,
-    //   calldata: "0x000",
-    //   operation,
-    //   roots,
-    //   nullifier_hashes: nulHashes,
-    //   proofs,
-    //   voters: votes,
-    //   nonce,
-    //   value,
-    // };
-    // api.post("/create", t).then(() => console.log("hi"));
+    const submitToDb = onSubmit(txn);
+    console.log(submitToDb)
   }
 
   return (
