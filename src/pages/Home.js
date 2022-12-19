@@ -109,54 +109,26 @@ function Home() {
 
     const vote = ethers.utils.formatBytes32String(nonce);
 
-    const gId = await moduleContract.groupId();
+    const bnGroupId = await moduleContract.groupId();
+    const gId = bnGroupId.toNumber();
     console.log(gId);
     setGroupId(gId);
 
-    // don't think i need to use this then
-    console.log("semaphore contract");
-    console.log(semaphoreContract);
-    const currGroup = await semaphoreContract.groups(groupId);
-    console.log(currGroup);
-
-    // TODO: make sure you retrieve initial root!
-    if (currRoot == -1) {
-      console.log(
-        "error, cannot make calls with empty group, wait longer or add a mem"
-      );
-    }
-
     const offchainGroup = new Group();
-    const members1 = await moduleContract.queryFilter(
+    const members = await moduleContract.queryFilter(
       moduleContract.filters.NewUser()
     );
-    console.log(members1);
-    offchainGroup.addMembers(members1.map((e) => e.args[0].toString()));
+    console.log(members);
+    offchainGroup.addMembers(members.map((e) => e.args[0].toString()));
 
     setGroup(offchainGroup);
-    console.log("old group with mems added");
     console.log(offchainGroup);
 
-    const newGroup = new Group();
-    const subgraph = new Subgraph("goerli");
-    const { members } = await subgraph.getGroup(gId.toString(), {
-      members: true,
-    });
-    console.log(members);
-    console.log(subgraph);
-    console.log(gId.toString());
-    newGroup.addMembers(members);
-
-    console.log("new group with mems added");
-    console.log(newGroup);
-
-    console.log(groupId)
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(
       identity,
       offchainGroup,
-      // groupId,
-      27,
+      gId,
       vote
     );
 
@@ -180,6 +152,8 @@ function Home() {
 
     // for eth transaction, we only need value, target, and operation
     // data is function selector
+    console.log("printing txnType")
+    console.log(txnType)
     const txn = {
       nonce: nonce,
       formInfo: {

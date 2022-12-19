@@ -3,7 +3,6 @@ import {
   Box,
   VStack,
   HStack,
-  GridItem,
 } from "@chakra-ui/react";
 import {
   useAccount,
@@ -46,14 +45,6 @@ function QueuePage() {
 
     const vote = ethers.utils.formatBytes32String(nonce);
 
-    // const groupId = 13;
-
-    // TODO: store this in react state or db?
-    // i think react state, have the user enter in safe address
-    // or have a "your safes" in db, for now just store in state
-    // const group = await semaphoreContract.groups(groupId);
-    // console.log(group);
-
     // group.root is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, group, groupId, vote);
     console.log(fullProof);
@@ -89,20 +80,6 @@ function QueuePage() {
   // this function just has to fix inputs, and call the execute transaction function
   async function executeTransaction(txn, txnIndex) {
 
-    /*
-    params 
-
-    address to, 
-    uint256 value,
-    bytes memory data,
-    Enum.Operation operation,
-
-    uint256[] memory merkleTreeRoots,
-    uint256[] memory nullifierHashes,
-    uint256[8][] memory proofs,
-    bytes32[] memory votes
-    */
-
     // address val in solidity, string val in js
     const to = txn.formInfo.target
 
@@ -114,13 +91,12 @@ function QueuePage() {
     const value = txn.formInfo.value
     console.log(value)
 
-    // right now, we are just supporting simple eth transfers and calls without args
-    // otherwise, we would have to look through funcCall
-
     const a = txn.formInfo.args
 
-    // const type = txn.formInfo.type 
-    const type = "ETH"
+    const type = txn.formInfo.type 
+    console.log('printing queuepage txn type')
+    console.log(type)
+
     if (type == "ERC20") {
         // have user pass in info about erc20 token decimals + recipient
         const metaTxn = encodeSingle({
@@ -185,29 +161,6 @@ function QueuePage() {
         console.log(txn.proofs)
         console.log(txn.voters)
 
-        // ******* off-chain verification **********
-        // const verificationKey = JSON.parse(JSON.stringify(semaphoreJson))
-        // for (var i = 0; i < txn.proofs.length; i++) {
-        //   const result = await verifyProof(verificationKey, txn.proofs[i]) 
-        //   console.log(result)
-        // }
-
-        /*
-        address to, // this is the target address, eg if you want the txn to push a button, this is the button
-        // for us, don't we want the target to be anything?
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation,
-
-        uint256[] memory merkleTreeRoots,
-        uint256[] memory nullifierHashes,
-        uint256[8][] memory proofs,
-        bytes32[] memory votes
-        */
-
-        /*
-        to, value, data, operation
-        */
         const execTxn = await moduleContract.executeTransaction(
             //to,
             "0x3be0dDA9B3657B63c2cd9e836E41903c97518088",
@@ -243,17 +196,6 @@ function QueuePage() {
   }
 
   function getTransactionData(e, i) {
-    /*
-        nonce -
-        address to - 
-        calldata (function and args) - 
-        eth value 
-        operation
-
-        num signatures - 
-        button to sign -
-        button to execute - 
-        */
     return (
       <VStack
         p={4}
