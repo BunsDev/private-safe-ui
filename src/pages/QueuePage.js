@@ -204,17 +204,25 @@ function QueuePage() {
         uint256[8][] memory proofs,
         bytes32[] memory votes
         */
+
+        /*
+        to, value, data, operation
+        */
         const execTxn = await moduleContract.executeTransaction(
-            to,
-            metaTxn.value,
+            //to,
+            "0x3be0dDA9B3657B63c2cd9e836E41903c97518088",
+            // metaTxn.value,
+            0,
             // "1.0",
-            currCalldata,
-            operation,
+            // currCalldata,
+            '0x',
+            // operation,
+            0,
             txn.roots,
             txn.nullifierHashes,
             txn.proofs,
             txn.voters,
-            {gasLimit: 350000}
+            {gasLimit: 2000000}
         );
 
         console.log(execTxn);
