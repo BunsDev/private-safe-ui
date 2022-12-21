@@ -35,5 +35,5 @@ export const onUpdate = (id, roots, nulHashes, proofs, voters) => {
 };
 
 export const onDelete = (id) => {
-  api.delete(`/${id}/`).then((res) => refreshMovies());
+  api.delete(`/${id}/`).then((res) => console.log(res.data));
 };

@@ -32,8 +32,7 @@ export function getCalldata(txn) {
             amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
             decimals: txn.formInfo.decimals // decimal places of the token
         })
-        const currCalldata = metaTxn.data
-        setCalldata(currCalldata)
+        return metaTxn.data
 
     } else if (type == "ERC721") {
         // have user pass in recipient + tokenId

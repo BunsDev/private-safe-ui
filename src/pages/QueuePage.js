@@ -22,7 +22,7 @@ import { encodeSingle, TransactionType } from "ethers-multisend"
 import privateModule from "../utils/PrivateModule.js";
 import semaphoreJson from "../sema/semaphore.json";
 import api from "../helpers/api.js";
-import { onUpdate } from "../helpers/database.js"
+import { onUpdate, onDelete } from "../helpers/database.js"
 
 function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
@@ -64,6 +64,7 @@ function QueuePage() {
       });
   };
 
+  // TODO: get state to update without refresh
   async function signTxn(txn, txnIndex) {
     // get address, re-generate the identity
     const identity = new Identity(address);
@@ -116,19 +117,19 @@ function QueuePage() {
   async function executeTransaction(txn, txnIndex) {
 
     // address val in solidity, string val in js
-    const to = txn.form.target
+    const to = txn.target
 
     // wei u256 value in solidity, int in js
     // TODO: users must pass in wei - if not eth transfer ??? 
     // const value = ethers.BigNumber.from(txn.form.value)
 
     // const value = utils.formatEther(txn.form.value)
-    const value = txn.form.value
+    const value = txn.value
     console.log(value)
 
-    const a = txn.form.args
+    const a = txn.args
 
-    const type = txn.form.type 
+    const type = txn.type 
     console.log('printing queuepage txn type')
     console.log(type)
 
@@ -218,9 +219,7 @@ function QueuePage() {
         console.log(type)
         console.log("wrong type")
     }
-    const funcCall = txn.form.data
 
-    const args = txn.form.args
     // args[2] = utils.BigNumber.from(args[2])
     // args[2] = utils.formatEther(args[2])
 
@@ -228,6 +227,12 @@ function QueuePage() {
     // const encodedData = iface.encodeFunctionData(funcCall, encodedData)
     // TODO: better way of dealing with this
     // 0 is call, 1 is delegatecall
+
+    // delete the transaction from the db
+    const pk = transactions[txnIndex];
+    const del = onDelete(pk);
+    console.log(del)
+
   }
 
   function getTransactionData(e, i) {
