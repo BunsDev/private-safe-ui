@@ -29,13 +29,13 @@ const { Group } = require("@semaphore-protocol/group");
 import { Subgraph } from "@semaphore-protocol/subgraph";
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { InjectedConnector } from "wagmi/connectors/injected";
-import { ethers } from "ethers";
+import { ContractFactory, ethers } from "ethers";
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
 import { useAtom } from "jotai";
 
-import {getCalldata} from "../helpers/txnInputs"
-import {onSubmit, refreshSafeTransactions} from "../helpers/database"
+import { getCalldata } from "../helpers/txnInputs";
+import { onSubmit, refreshSafeTransactions } from "../helpers/database";
 
 function Home() {
   const [target, setTarget] = useState("");
@@ -45,6 +45,7 @@ function Home() {
   const [operation, setOperation] = useState("");
   const [txnType, setTxnType] = useState("");
   const [decimals, setDecimals] = useState(0);
+  const [contract, setContract] = useState("");
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
@@ -128,12 +129,7 @@ function Home() {
     console.log(offchainGroup);
 
     // currRoot is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(
-      identity,
-      offchainGroup,
-      gId,
-      vote
-    );
+    const fullProof = await generateProof(identity, offchainGroup, gId, vote);
 
     console.log(fullProof);
 
@@ -155,8 +151,8 @@ function Home() {
 
     // for eth transaction, we only need value, target, and operation
     // data is function selector
-    console.log("printing txnType")
-    console.log(txnType)
+    console.log("printing txnType");
+    console.log(txnType);
 
     const txn = {
       safe: safe,
@@ -169,6 +165,8 @@ function Home() {
         operation: operation,
         type: txnType,
         decimals: decimals,
+        // abi
+        contract: contract,
       },
       roots: treeRoots,
       nullifierHashes: nulHashes,
@@ -178,13 +176,13 @@ function Home() {
 
     // generate and update data field of txn
     const calldata = getCalldata(txn);
-    txn['form']['data'] = calldata;
+    txn["form"]["data"] = calldata;
 
     setQueue([...queue, txn]);
 
     // make a post request, initializing the transaction in the database
     const submitToDb = onSubmit(txn);
-    console.log(submitToDb)
+    console.log(submitToDb);
   }
 
   return (
@@ -232,7 +230,21 @@ function Home() {
               />
             </Box>
           ) : (
-            <div></div>
+            <div>
+              {txnType == "contract" ? (
+                <Box>
+                  <FormLabel>ABI</FormLabel>
+                  <Textarea
+                    type="string"
+                    value={contract}
+                    onChange={(event) => setContract(event.target.value)}
+                    placeholder="contract abi"
+                  />
+                </Box>
+              ) : (
+                <div></div>
+              )}
+            </div>
           )}
           <FormLabel>To</FormLabel>
           <Input
