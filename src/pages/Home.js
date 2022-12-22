@@ -8,7 +8,7 @@ import {
   Textarea,
   Radio,
   RadioGroup,
-  Stack
+  Stack,
 } from "@chakra-ui/react";
 import {
   useAccount,
@@ -26,14 +26,16 @@ import {
 import { useState } from "react";
 import { Identity } from "@semaphore-protocol/identity";
 const { Group } = require("@semaphore-protocol/group");
-import { Subgraph } from "@semaphore-protocol/subgraph"
+import { Subgraph } from "@semaphore-protocol/subgraph";
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { InjectedConnector } from "wagmi/connectors/injected";
-import { ethers } from "ethers";
+import { ContractFactory, ethers } from "ethers";
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
 import { useAtom } from "jotai";
 
+import { getCalldata } from "../helpers/txnInputs";
+import { onSubmit, refreshSafeTransactions } from "../helpers/database";
 
 function Home() {
   const [target, setTarget] = useState("");
@@ -42,7 +44,8 @@ function Home() {
   const [args, setArgs] = useState("");
   const [operation, setOperation] = useState("");
   const [txnType, setTxnType] = useState("");
-  const [decimals, setDecimals] = useState(0)
+  const [decimals, setDecimals] = useState(0);
+  const [contract, setContract] = useState("");
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
@@ -59,7 +62,7 @@ function Home() {
   const { data: signer } = useSigner();
 
   const moduleContract = useContract({
-    address: "0x3818aC507F4a9eCC288569d17DC22911f95F2da0",
+    address: "0xD5C7bD20f214512434B3455c071b08017d405f2C",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -70,28 +73,25 @@ function Home() {
     signerOrProvider: signer,
   });
 
+  const safe = "0xC3ACf93b1AAA0c65ffd484d768576F4ce106eB4f";
+
   async function createIdentity() {
     if (isConnected) {
       console.log("isConnected");
-     
+
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
-      
+
       // add to group
       console.log(moduleContract);
       const signedId = signer.signMessage(commitment);
-      const b32user = ethers.utils.formatBytes32String(signedId
-        
-        );
+      const b32user = ethers.utils.formatBytes32String(signedId);
 
-      const addSigner = await moduleContract.joinAsSigner(
-        commitment,
-        b32user
-      );
+      const addSigner = await moduleContract.joinAsSigner(commitment, b32user);
 
       console.log(addSigner);
-      
-      // update our merkle root 
+
+      // update our merkle root
       const updateRoot = await semaphoreContract.on(
         "MemberAdded",
         (groupId, index, identityCommitment, root) => {
@@ -113,52 +113,23 @@ function Home() {
 
     const vote = ethers.utils.formatBytes32String(nonce);
 
-    const gId = await moduleContract.groupId();
-    console.log(gId)
+    const bnGroupId = await moduleContract.groupId();
+    const gId = bnGroupId.toNumber();
+    console.log(gId);
     setGroupId(gId);
 
-    // don't think i need to use this then
-    console.log("semaphore contract");
-    console.log(semaphoreContract);
-    const currGroup = await semaphoreContract.groups(groupId);
-    console.log(currGroup);
-
-    // TODO: make sure you retrieve initial root!
-    if (currRoot == -1) {
-      console.log(
-        "error, cannot make calls with empty group, wait longer or add a mem"
-      );
-    }
-
     const offchainGroup = new Group();
-    const members1 = await moduleContract.queryFilter(
+    const members = await moduleContract.queryFilter(
       moduleContract.filters.NewUser()
     );
-    console.log(members1);
-    offchainGroup.addMembers(members1.map((e) => e.args[0].toString()));
+    console.log(members);
+    offchainGroup.addMembers(members.map((e) => e.args[0].toString()));
 
     setGroup(offchainGroup);
-    console.log("old group with mems added")
-    console.log(offchainGroup)
-    
-    const newGroup = new Group();
-    const subgraph = new Subgraph("goerli")
-    const { members } = await subgraph.getGroup(gId.toString(), { members: true })
-    console.log(members)
-    console.log(subgraph)
-    console.log(gId.toString())
-    newGroup.addMembers(members)
-
-    console.log("new group with mems added")
-    console.log(newGroup)
+    console.log(offchainGroup);
 
     // currRoot is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(
-      identity,
-      offchainGroup,
-      groupId,
-      vote
-    );
+    const fullProof = await generateProof(identity, offchainGroup, gId, vote);
 
     console.log(fullProof);
 
@@ -173,31 +144,45 @@ function Home() {
     const proofs = [solidityProof];
 
     // initialized voters array
-    const votes = [vote];
+    const voters = [vote];
 
-    const sepArgs = args.split(",")
-    console.log(sepArgs)
-    
+    const sepArgs = args.split(",");
+    console.log(sepArgs);
+
     // for eth transaction, we only need value, target, and operation
     // data is function selector
+    console.log("printing txnType");
+    console.log(txnType);
+
     const txn = {
+      safe: safe,
       nonce: nonce,
-      formInfo: {
+      form: {
         target: target,
         value: value,
-        data: func,
+        data: null,
         args: sepArgs,
         operation: operation,
         type: txnType,
-        decimals: decimals
+        decimals: decimals,
+        // abi
+        contract: contract,
       },
       roots: treeRoots,
       nullifierHashes: nulHashes,
       proofs: proofs,
-      voters: votes,
+      voters: voters,
     };
 
+    // generate and update data field of txn
+    const calldata = getCalldata(txn);
+    txn["form"]["data"] = calldata;
+
     setQueue([...queue, txn]);
+
+    // make a post request, initializing the transaction in the database
+    const submitToDb = onSubmit(txn);
+    console.log(submitToDb);
   }
 
   return (
@@ -226,42 +211,54 @@ function Home() {
 
       <FormControl>
         <VStack spacing="10px" alignItems="flex-start">
-        <RadioGroup onChange={setTxnType} value={txnType}>
-          <Stack direction='row'>
-            <Radio value='ETH'>ETH Transfer</Radio>
-            <Radio value='ERC20'>ERC20 Transfer</Radio>
-            <Radio value='ERC721'>ERC721 Transfer</Radio>
-            <Radio value='contract'>ContractCall</Radio>
-          </Stack>
-        </RadioGroup>
-        {
-          (txnType == "ERC20") ? 
+          <RadioGroup onChange={setTxnType} value={txnType}>
+            <Stack direction="row">
+              <Radio value="ETH">ETH Transfer</Radio>
+              <Radio value="ERC20">ERC20 Transfer</Radio>
+              <Radio value="ERC721">ERC721 Transfer</Radio>
+              <Radio value="contract">ContractCall</Radio>
+            </Stack>
+          </RadioGroup>
+          {txnType == "ERC20" ? (
             <Box>
               <FormLabel>Decimals</FormLabel>
-              <Input 
+              <Input
                 type="string"
                 value={decimals}
                 onChange={(event) => setDecimals(event.target.value)}
-                placeholder='Recipient address (can be a contract address)'
+                placeholder="Recipient address (can be a contract address)"
               />
             </Box>
-            :
-            <div></div>
-            
-        }
+          ) : (
+            <div>
+              {txnType == "contract" ? (
+                <Box>
+                  <FormLabel>ABI</FormLabel>
+                  <Textarea
+                    type="string"
+                    value={contract}
+                    onChange={(event) => setContract(event.target.value)}
+                    placeholder="contract abi"
+                  />
+                </Box>
+              ) : (
+                <div></div>
+              )}
+            </div>
+          )}
           <FormLabel>To</FormLabel>
           <Input
             type="string"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            placeholder='Recipient address (can be a contract address)'
+            placeholder="Recipient address (can be a contract address)"
           />
           <FormLabel>Value</FormLabel>
           <Input
             type="number"
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder='Ether value (e.g. 1.0)'
+            placeholder="Ether value (e.g. 1.0)"
           />
           <FormLabel>Function Selector</FormLabel>
           <Input
@@ -270,8 +267,8 @@ function Home() {
             onChange={(event) => setFunc(event.target.value)}
           />
           <FormLabel>Arguments</FormLabel>
-          <Textarea 
-            placeholder='Separate arguments by comma, no space! Currently only supports non-nested arguments'
+          <Textarea
+            placeholder="Separate arguments by comma, no space! Currently only supports non-nested arguments"
             value={args}
             onChange={(event) => setArgs(event.target.value)}
           />
