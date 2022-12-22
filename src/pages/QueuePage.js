@@ -39,7 +39,7 @@ function QueuePage() {
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
-    address: "0x3818aC507F4a9eCC288569d17DC22911f95F2da0",
+    address: "0xD5C7bD20f214512434B3455c071b08017d405f2C",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -229,9 +229,9 @@ function QueuePage() {
     // 0 is call, 1 is delegatecall
 
     // delete the transaction from the db
-    const pk = transactions[txnIndex];
-    const del = onDelete(pk);
-    console.log(del)
+    // const pk = transactions[txnIndex];
+    // const del = onDelete(pk);
+    // console.log(del)
 
   }
 

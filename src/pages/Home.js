@@ -62,7 +62,7 @@ function Home() {
   const { data: signer } = useSigner();
 
   const moduleContract = useContract({
-    address: "0x3818aC507F4a9eCC288569d17DC22911f95F2da0",
+    address: "0xD5C7bD20f214512434B3455c071b08017d405f2C",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
