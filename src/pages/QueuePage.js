@@ -129,7 +129,8 @@ function QueuePage() {
 
     const a = txn.args
 
-    const type = txn.type 
+    // const type = txn.type 
+    const type = "ETH"
     console.log('printing queuepage txn type')
     console.log(type)
 
@@ -193,7 +194,7 @@ function QueuePage() {
         console.log(currCalldata)
         console.log(operation)
         console.log(txn.roots)
-        console.log(txn.nullifierHashes)
+        console.log(txn.nullifier_hashes)
         console.log(txn.proofs)
         console.log(txn.voters)
 
@@ -208,7 +209,7 @@ function QueuePage() {
             // operation,
             0,
             txn.roots,
-            txn.nullifierHashes,
+            txn.nullifier_hashes,
             txn.proofs,
             txn.voters,
             {gasLimit: 2000000}
