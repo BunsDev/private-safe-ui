@@ -1,7 +1,8 @@
 import logo from "./logo.svg";
 import "./App.css";
-import Home from "./pages/Home.js";
+import TxnPage from "./pages/TxnPage.js";
 import QueuePage from "./pages/QueuePage.js";
+import HomePage from "./pages/HomePage.js"
 import NavBar from "./components/NavBar.js";
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
@@ -41,7 +42,8 @@ function App() {
           <NavBar />
           <Routes>
             <Route path="/queue" element={<QueuePage />} />
-            <Route path="/" element={<Home />} />
+            <Route path="/transaction" element={<TxnPage />} />
+            <Route path="/" element={<HomePage />} />
           </Routes>
           </Box>
         </Router>

@@ -23,7 +23,7 @@ import {
   groupAtom,
   groupIdAtom,
 } from "../utils/atoms.js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Identity } from "@semaphore-protocol/identity";
 const { Group } = require("@semaphore-protocol/group");
 import { Subgraph } from "@semaphore-protocol/subgraph";
@@ -35,9 +35,15 @@ import semaphore from "../utils/Semaphore.js";
 import { useAtom } from "jotai";
 
 import { getCalldata } from "../helpers/txnInputs";
-import { onSubmit, refreshSafeTransactions } from "../helpers/database";
+import {
+  onSubmit,
+  refreshSafeTransactions,
+  onCreateSafe,
+  onUpdateSafe,
+} from "../helpers/database";
+import api from "../helpers/api.js";
 
-function Home() {
+function TxnPage() {
   const [target, setTarget] = useState("");
   const [value, setValue] = useState(0);
   const [func, setFunc] = useState("");
@@ -46,6 +52,8 @@ function Home() {
   const [txnType, setTxnType] = useState("");
   const [decimals, setDecimals] = useState(0);
   const [contract, setContract] = useState("");
+  const [safes, setSafes] = useState([]);
+  const [currSafe, setCurrSafe] = useState({});
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
@@ -62,7 +70,7 @@ function Home() {
   const { data: signer } = useSigner();
 
   const moduleContract = useContract({
-    address: "0xD5C7bD20f214512434B3455c071b08017d405f2C",
+    address: "0x5BDfc497B21D58656556703DeE95AAA475b6bA66",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -74,6 +82,25 @@ function Home() {
   });
 
   const safe = "0xC3ACf93b1AAA0c65ffd484d768576F4ce106eB4f";
+
+  useEffect(() => {
+    // TODO: find a cleaner way to get safe
+    refreshSafe();
+  }, []);
+
+  const refreshSafe = () => {
+    api
+      .get("/safe/")
+      .then((res) => {
+        console.log("got response");
+        console.log(res.data);
+        // TODO: cleaner way of filtering for the safe
+        setSafes(res.data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
 
   async function createIdentity() {
     if (isConnected) {
@@ -91,6 +118,10 @@ function Home() {
 
       console.log(addSigner);
 
+      // get safe
+      // TODO: remove the hardcoded safe
+      const curr = safes.filter((e) => e.safe == safe)[0];
+      setCurrSafe(curr);
       // update our merkle root
       const updateRoot = await semaphoreContract.on(
         "MemberAdded",
@@ -98,6 +129,11 @@ function Home() {
           console.log("updating root");
           console.log(root);
           setCurrRoot(root);
+          // update db
+          console.log(identityCommitment);
+          const idNum = ethers.BigNumber.from(identityCommitment);
+          const updatedMems = [...curr.group_members, idNum];
+          onUpdateSafe(curr.pk, updatedMems);
         }
       );
 
@@ -123,10 +159,14 @@ function Home() {
       moduleContract.filters.NewUser()
     );
     console.log(members);
-    offchainGroup.addMembers(members.map((e) => e.args[0].toString()));
+    const memberIds = members.map((e) => e.args[0].toString());
+    offchainGroup.addMembers(memberIds);
+    console.log(ethers.BigNumber.from(members[0].args[0]._hex));
 
     setGroup(offchainGroup);
     console.log(offchainGroup);
+
+    // onCreateSafe(safe, memberIds, gId)
 
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, offchainGroup, gId, vote);
@@ -286,4 +326,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default TxnPage;

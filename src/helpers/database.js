@@ -22,7 +22,7 @@ export const onSubmit = (txn) => {
 
   const input = JSON.stringify(t);
   api
-    .post("/create/", input, { headers: { "Content-Type": "application/json" } })
+    .post("/transaction/create/", input, { headers: { "Content-Type": "application/json" } })
     // .then(() => refreshSafeTransactions());
     .then((res) => console.log(res))
 };
@@ -31,9 +31,30 @@ export const onSubmit = (txn) => {
 export const onUpdate = (id, roots, nulHashes, proofs, voters) => {
   const t = { roots, nullifier_hashes: nulHashes, proofs, voters };
   const item = JSON.stringify(t);
-  api.patch(`update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
+  api.patch(`/transaction/update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
 };
 
 export const onDelete = (id) => {
-  api.delete(`/${id}/`).then((res) => console.log(res.data));
+  api.delete(`/transaction/${id}/`).then((res) => console.log(res.data));
 };
+
+export const onCreateSafe = (safe, members, id) => {
+  const t = {
+    safe: safe, 
+    group_members: members,
+    group_id: id,
+  }
+  const input = JSON.stringify(t);
+  api
+    .post("/safe/create/", input, { headers: { "Content-Type": "application/json" } })
+    // .then(() => refreshSafeTransactions());
+    .then((res) => console.log(res))
+}
+
+export const onUpdateSafe = (id, members) => {
+  const t = {
+    group_members: members
+  }
+  const item = JSON.stringify(t);
+  api.patch(`/safe/update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
+}

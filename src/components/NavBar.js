@@ -24,9 +24,14 @@ function NavBar() {
     return (
         <Box bg='#008c73' borderRadius='28px' >
             <Flex flexDirection="row">
-                <Box p={4} pl={10}>
+            <Box p={4} pl={10}>
                     <Link variant="brand" to='/' >
                         Home
+                    </Link>
+                </Box>
+                <Box p={4}>
+                    <Link variant="brand" to='/transaction' >
+                        Transaction
                     </Link>
                 </Box>
                 <Box p={4}>

@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 
 import { packToSolidityProof, generateProof, verifyProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
+const { Group } = require("@semaphore-protocol/group");
 import { ethers, utils } from "ethers";
 import { encodeSingle, TransactionType } from "ethers-multisend"
 
@@ -31,6 +32,8 @@ function QueuePage() {
   const [groupId, setGroupId] = useAtom(groupIdAtom);
   const [transactions, setTransactions] = useState([])
   const [calldata, setCalldata] = useState("");
+  const [safes, setSafes] = useState([])
+  const [currTxn, setCurrTxn] = useState({})
 
   const { address, isConnected } = useAccount();
   const { data: signer } = useSigner();
@@ -39,19 +42,21 @@ function QueuePage() {
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
-    address: "0xD5C7bD20f214512434B3455c071b08017d405f2C",
+    address: "0x5BDfc497B21D58656556703DeE95AAA475b6bA66",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
 
   useEffect(() => {
     refreshSafeTransactions();
+    // TODO: find a cleaner way to get safe
+    refreshSafe();
   }, []);
 
   // refetch the transactions in the safe for display, use in a useEffect call
   const refreshSafeTransactions = () => {
     api
-      .get("/")
+      .get("/transaction/")
       .then((res) => {
         console.log("got response");
         console.log(res.data)
@@ -64,20 +69,44 @@ function QueuePage() {
       });
   };
 
+  const refreshSafe = () => {
+    api
+      .get("/safe/")
+      .then((res) => {
+        console.log("got response");
+        console.log(res.data)
+        // TODO: cleaner way of filtering for the safe
+        setSafes(res.data)
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   // TODO: get state to update without refresh
   async function signTxn(txn, txnIndex) {
     // get address, re-generate the identity
+    setCurrTxn(txn);
+    console.log(safes)
+    const currSafe = safes.filter(e => e.safe == txn.safe)[0]
     const identity = new Identity(address);
 
-    const vote = ethers.utils.formatBytes32String(nonce);
+    const vote = ethers.utils.formatBytes32String(txn.nonce);
 
-    // TODO: don't rely on react state for group, groupId, or nonce
-    console.log(group)
-    console.log(groupId)
-    console.log(nonce)
+    // get group, groupId, and filter by safe
+    
+    console.log(currSafe)
+    
+    // reconstruct group
+    const reconstructedGroup = new Group();
+    reconstructedGroup.addMembers(currSafe.group_members)
+
+    console.log(reconstructedGroup)
+    // console.log(groupId)
+    // console.log(nonce)
 
     // group.root is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(identity, group, groupId, vote);
+    const fullProof = await generateProof(identity, reconstructedGroup, currSafe.group_id, vote);
     console.log(fullProof);
 
     // initialized merkleTreeRoots
