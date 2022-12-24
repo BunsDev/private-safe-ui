@@ -29,7 +29,6 @@ function QueuePage() {
   const [queue, setQueue] = useAtom(queueAtom);
   const [nonce, setNonce] = useAtom(nonceAtom);
   const [group, setGroup] = useAtom(groupAtom);
-  const [groupId, setGroupId] = useAtom(groupIdAtom);
   const [transactions, setTransactions] = useState([])
   const [calldata, setCalldata] = useState("");
   const [safes, setSafes] = useState([])
@@ -145,9 +144,6 @@ function QueuePage() {
   // this function just has to fix inputs, and call the execute transaction function
   async function executeTransaction(txn, txnIndex) {
 
-    // address val in solidity, string val in js
-    const to = txn.target
-
     // wei u256 value in solidity, int in js
     // TODO: users must pass in wei - if not eth transfer ??? 
     // const value = ethers.BigNumber.from(txn.form.value)
@@ -156,99 +152,24 @@ function QueuePage() {
     const value = txn.value
     console.log(value)
 
-    const a = txn.args
+    const execTxn = await moduleContract.executeTransaction(
+        //to,
+        "0x3be0dDA9B3657B63c2cd9e836E41903c97518088",
+        // metaTxn.value,
+        0,
+        // "1.0",
+        // currCalldata,
+        '0x',
+        // operation,
+        0,
+        txn.roots,
+        txn.nullifier_hashes,
+        txn.proofs,
+        txn.voters,
+        {gasLimit: 2000000}
+    );
 
-    // const type = txn.type 
-    const type = "ETH"
-    console.log('printing queuepage txn type')
-    console.log(type)
-
-    if (type == "ERC20") {
-        // have user pass in info about erc20 token decimals + recipient
-        const metaTxn = encodeSingle({
-            type: TransactionType.transferFunds,
-            id: "0", // not relevant for encoding the final transaction
-            // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
-            token: to,
-            to: a[0], // address of recipient
-            // TODO: for ERC20 transfers, do they have an ETH value associated with them?
-            amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
-            decimals: txn.form.decimals // decimal places of the token
-        })
-        const currCalldata = metaTxn.data
-        setCalldata(currCalldata)
-
-    } else if (type == "ERC721") {
-        // have user pass in recipient + tokenId
-        const metaTxn = encodeSingle({
-            type: TransactionType.transferCollectible,
-            id: "0", // not relevant for encoding the final transaction
-            address: to, // ERC721 contract address
-            tokenId: string, // ID of the NFT
-            to: string, // address of recipient
-            // TODO: not sure about this address ,\.... safe
-            from: address // address of sender
-        })
-
-    } else if (type == "contract") {
-        // TODO: take in ABI as input
-        const metaTxn = encodeSingle({
-          type: TransactionType.callContract,
-          id: "0", // not relevant for encoding the final transaction
-          to: to, // contract address
-          value: value, // amount of wei to send
-          abi: string, // ABI as JSON string
-          functionSignature: string,
-          // inputValues: { [key: string]: ValueType }
-      })
-    } else if (type == "ETH") {
-        const metaTxn = encodeSingle({
-            type: TransactionType.transferFunds,
-            id: "0", // not relevant for encoding the final transaction
-            // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
-            token: null,
-            to: to, // address of recipient
-            amount: "1.0", // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
-            decimals: 18 // decimal places of the token
-        })
-
-        const operation = 0;
-        // if (txn.form.operation == "delegatecall") {
-        //     operation = 1;
-        // }
-        const currCalldata = metaTxn.data
-        setCalldata(currCalldata)
-        console.log(to)
-        console.log(metaTxn.value)
-        console.log(currCalldata)
-        console.log(operation)
-        console.log(txn.roots)
-        console.log(txn.nullifier_hashes)
-        console.log(txn.proofs)
-        console.log(txn.voters)
-
-        const execTxn = await moduleContract.executeTransaction(
-            //to,
-            "0x3be0dDA9B3657B63c2cd9e836E41903c97518088",
-            // metaTxn.value,
-            0,
-            // "1.0",
-            // currCalldata,
-            '0x',
-            // operation,
-            0,
-            txn.roots,
-            txn.nullifier_hashes,
-            txn.proofs,
-            txn.voters,
-            {gasLimit: 2000000}
-        );
-
-        console.log(execTxn);
-    } else {
-        console.log(type)
-        console.log("wrong type")
-    }
+    console.log(execTxn);
 
     // args[2] = utils.BigNumber.from(args[2])
     // args[2] = utils.formatEther(args[2])
@@ -259,9 +180,9 @@ function QueuePage() {
     // 0 is call, 1 is delegatecall
 
     // delete the transaction from the db
-    // const pk = transactions[txnIndex];
-    // const del = onDelete(pk);
-    // console.log(del)
+    const pk = transactions[txnIndex].pk;
+    const del = onDelete(pk);
+    console.log(del)
 
   }
 

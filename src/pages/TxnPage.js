@@ -282,7 +282,21 @@ function TxnPage() {
                   />
                 </Box>
               ) : (
+                <div>
+                  {txnType == "ERC721" ? (
+                <Box>
+                  <FormLabel>ABI</FormLabel>
+                  <Textarea
+                    type="string"
+                    value={contract}
+                    onChange={(event) => setContract(event.target.value)}
+                    placeholder="contract abi"
+                  />
+                </Box>
+              ) : (
                 <div></div>
+              )}
+                </div>
               )}
             </div>
           )}

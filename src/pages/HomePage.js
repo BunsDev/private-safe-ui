@@ -1,17 +1,44 @@
 import { Button, Box, VStack, FormControl, Input, FormLabel } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   onCreateSafe,
 } from "../helpers/database";
+import api from "../helpers/api.js";
 
 // TODO: make module deployment for safe
 // TODO: programmatically add the module
 function HomePage() {
-  const [safe, setSafe] = useState("");
-  const [groupId, setGroupId] = useState(0);
+  const [safes, setSafes] = useState("");
+  const [safe, setSafe] = useState("")
+  const [groupId, setGroupId] = useState(0)
+
+  useEffect(() => {
+    // TODO: find a cleaner way to get safe
+    refreshSafe();
+  }, []);
+
+  const refreshSafe = () => {
+    api
+      .get("/safe/")
+      .then((res) => {
+        console.log("got response");
+        console.log(res.data);
+        // TODO: cleaner way of filtering for the safe
+        setSafes(res.data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
 
   function initSafe() {
-    onCreateSafe(safe, [], groupId)
+    if (safes != []) {
+      const currSafe = safes.filter(e => e.safe == safe)[0]
+      if (currSafe == []) {
+        // TODO: deploy and add the module
+        onCreateSafe(safe, [], groupId)
+      } 
+    }
   }
 
   return (
