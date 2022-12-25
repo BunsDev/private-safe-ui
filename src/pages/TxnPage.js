@@ -106,6 +106,11 @@ function TxnPage() {
     if (isConnected) {
       console.log("isConnected");
 
+      // get safe
+      // TODO: remove the hardcoded safe
+      const curr = safes.filter((e) => e.safe == safe)[0];
+      setCurrSafe(curr);
+
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
 
@@ -117,11 +122,6 @@ function TxnPage() {
       const addSigner = await moduleContract.joinAsSigner(commitment, b32user);
 
       console.log(addSigner);
-
-      // get safe
-      // TODO: remove the hardcoded safe
-      const curr = safes.filter((e) => e.safe == safe)[0];
-      setCurrSafe(curr);
       // update our merkle root
       const updateRoot = await semaphoreContract.on(
         "MemberAdded",
@@ -144,6 +144,9 @@ function TxnPage() {
   }
 
   async function initTxn() {
+    const curr = safes.filter((e) => e.safe == safe)[0];
+    setCurrSafe(curr);
+
     // get address, re-generate the identity
     const identity = new Identity(address);
 
@@ -166,7 +169,7 @@ function TxnPage() {
     setGroup(offchainGroup);
     console.log(offchainGroup);
 
-    // onCreateSafe(safe, memberIds, gId)
+    onUpdateSafe(curr.pk, memberIds)
 
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, offchainGroup, gId, vote);
@@ -213,6 +216,8 @@ function TxnPage() {
       proofs: proofs,
       voters: voters,
     };
+
+    console.log(txn)
 
     // generate and update data field of txn
     const calldata = getCalldata(txn);

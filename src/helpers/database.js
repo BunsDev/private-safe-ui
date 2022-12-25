@@ -35,7 +35,7 @@ export const onUpdate = (id, roots, nulHashes, proofs, voters) => {
 };
 
 export const onDelete = (id) => {
-  api.delete(`/transaction/${id}/`).then((res) => console.log(res.data));
+  api.delete(`/transaction/delete/${id}/`).then((res) => console.log(res.data));
 };
 
 export const onCreateSafe = (safe, members, id) => {
@@ -55,6 +55,9 @@ export const onUpdateSafe = (id, members) => {
   const t = {
     group_members: members
   }
+
+  console.log(id)
+  console.log(members)
   const item = JSON.stringify(t);
   api.patch(`/safe/update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
 }

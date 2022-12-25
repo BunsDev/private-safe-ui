@@ -174,11 +174,6 @@ function QueuePage() {
     // args[2] = utils.BigNumber.from(args[2])
     // args[2] = utils.formatEther(args[2])
 
-    // const abiCoder = utils.defaultAbiCoder
-    // const encodedData = iface.encodeFunctionData(funcCall, encodedData)
-    // TODO: better way of dealing with this
-    // 0 is call, 1 is delegatecall
-
     // delete the transaction from the db
     const pk = transactions[txnIndex].pk;
     const del = onDelete(pk);
