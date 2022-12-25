@@ -59,7 +59,8 @@ function QueuePage() {
       .then((res) => {
         console.log("got response");
         console.log(res.data)
-        setTransactions(res.data)
+        const ordered = res.data.sort((a, b) => a.pk - b.pk)
+        setTransactions(ordered)
         // here, return res.data is undefined even tho console.log works
         // return res.data;
       })
@@ -151,6 +152,7 @@ function QueuePage() {
     // const value = utils.formatEther(txn.form.value)
     const value = txn.value
     console.log(value)
+    console.log(txn.voters)
 
     const execTxn = await moduleContract.executeTransaction(
         //to,

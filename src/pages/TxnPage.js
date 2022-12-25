@@ -55,7 +55,7 @@ function TxnPage() {
   const [safes, setSafes] = useState([]);
   const [currSafe, setCurrSafe] = useState({});
   const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
-  const [nonce, setNonce] = useAtom(nonceAtom);
+  // const [nonce, setNonce] = useAtom(nonceAtom);
   const [groupId, setGroupId] = useAtom(groupIdAtom);
   const [group, setGroup] = useAtom(groupAtom);
   const [currRoot, setCurrRoot] = useState(-1);
@@ -150,11 +150,22 @@ function TxnPage() {
     // get address, re-generate the identity
     const identity = new Identity(address);
 
-    const vote = ethers.utils.formatBytes32String(nonce);
+    // get nonce
+    const bigIntNonce = await moduleContract.nonce();
+    const nonce = bigIntNonce.toNumber();
+    console.log("nonce")
+    console.log(nonce)
 
+    // const vote = ethers.utils.formatBytes32String("1");
+    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32)
+
+    console.log("vote")
+    console.log(vote)
+
+    // get group, get members
     const bnGroupId = await moduleContract.groupId();
     const gId = bnGroupId.toNumber();
-    console.log(gId);
+
     setGroupId(gId);
 
     const offchainGroup = new Group();
