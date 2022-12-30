@@ -7,7 +7,7 @@ import {
   FormLabel,
   Stack,
   RadioGroup,
-  Radio
+  Radio,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { onCreateSafe } from "../helpers/database";
@@ -28,16 +28,9 @@ import {
   useSigner,
 } from "wagmi";
 
-import {
-  onSubmit,
-  refreshSafeTransactions,
-  onCreateSafe,
-  onUpdateSafe,
-} from "../helpers/database";
+import { onCreateSafe, onUpdateSafe } from "../helpers/database";
 import api from "../helpers/api.js";
 
-// TODO: make module deployment for safe
-// TODO: programmatically add the module
 function HomePage() {
   const [safes, setSafes] = useState("");
   const [safe, setSafe] = useState("");
@@ -86,27 +79,25 @@ function HomePage() {
   };
 
   async function initSafe() {
-
     const groups = await moduleContract.queryFilter(
       moduleContract.filters.DebugGroup()
     );
-    console.log(groups)
+    console.log(groups);
 
     const id = await moduleContract.groupId();
-    console.log(id)
+    console.log(id);
 
     //GroupCreated(groupId, merkleTreeDepth, zeroValue)
     const semaGroup = await semaphoreContract.queryFilter(
       semaphoreContract.filters.GroupCreated()
     );
-    console.log(semaGroup)
+    console.log(semaGroup);
 
     if (safes != []) {
       const currSafe = safes.filter((e) => e.safe == safe)[0];
-      console.log(currSafe)
+      console.log(currSafe);
       if (currSafe == null) {
         // TODO: deploy and add the module, also add the option to use existing module
-
         // if already deployed
         const members = await moduleContract.queryFilter(
           moduleContract.filters.NewUser()
@@ -126,25 +117,24 @@ function HomePage() {
       // get safe
       // TODO: remove the hardcoded safe
       const curr = safes.filter((e) => e.safe == safe)[0];
-      console.log(curr)
+      console.log(curr);
       // setCurrSafe(curr);
 
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
-      console.log(commitment)
+      console.log(commitment);
 
       // add to group
       console.log(moduleContract);
       const signedId = signer.signMessage(commitment);
       const b32user = ethers.utils.formatBytes32String(signedId);
-      console.log(b32user)
+      console.log(b32user);
 
-      const addSigner = await moduleContract.joinAsSigner(commitment, b32user, { gasLimit: 500000});
+      const addSigner = await moduleContract.joinAsSigner(commitment, b32user, {
+        gasLimit: 500000,
+      });
 
       console.log(addSigner);
-      // update the members in our backend
-
-      //NewUser(identityCommitment, username);
 
       const updateMembers = await moduleContract.on(
         "NewUser",
@@ -152,7 +142,7 @@ function HomePage() {
           // update db
           console.log(identityCommitment);
           const idNum = identityCommitment.toString();
-          console.log(idNum)
+          console.log(idNum);
           const updatedMems = [...curr.group_members, idNum];
           onUpdateSafe(curr.pk, updatedMems);
         }
@@ -204,8 +194,12 @@ function HomePage() {
 
           <RadioGroup onChange={setNoModule} value={noModule}>
             <Stack direction="row">
-              <Radio value={1} colorScheme='green'>Existing Module</Radio>
-              <Radio value={2} colorScheme='green'>New Module</Radio>
+              <Radio value={1} colorScheme="green">
+                Existing Module
+              </Radio>
+              <Radio value={2} colorScheme="green">
+                New Module
+              </Radio>
             </Stack>
           </RadioGroup>
           {noModule == 1 ? (
@@ -219,8 +213,7 @@ function HomePage() {
               />
             </Box>
           ) : (
-            <div>
-            </div>
+            <div></div>
           )}
 
           <Button onClick={initSafe}>Init Safe Module</Button>

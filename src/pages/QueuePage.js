@@ -1,43 +1,25 @@
-import {
-  Button,
-  Box,
-  VStack,
-  HStack,
-} from "@chakra-ui/react";
-import {
-  useAccount,
-  useContract,
-  useSigner,
-} from "wagmi";
-import { useAtom } from "jotai";
-import { queueAtom, nonceAtom, groupAtom, groupIdAtom } from "../utils/atoms.js";
+import { Button, Box, VStack, HStack } from "@chakra-ui/react";
+import { useAccount, useContract, useSigner } from "wagmi";
 
 import { useState, useEffect } from "react";
 
-import { packToSolidityProof, generateProof, verifyProof } from "@semaphore-protocol/proof";
+import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { Identity } from "@semaphore-protocol/identity";
 const { Group } = require("@semaphore-protocol/group");
-import { ethers, utils } from "ethers";
-import { encodeSingle, TransactionType } from "ethers-multisend"
+import { ethers } from "ethers";
 
 import privateModule from "../utils/PrivateModule.js";
-import semaphoreJson from "../sema/semaphore.json";
 import api from "../helpers/api.js";
-import { onUpdate, onDelete } from "../helpers/database.js"
+import { onUpdate, onDelete } from "../helpers/database.js";
 
 function QueuePage() {
-  const [queue, setQueue] = useAtom(queueAtom);
-  const [nonce, setNonce] = useAtom(nonceAtom);
-  const [group, setGroup] = useAtom(groupAtom);
-  const [transactions, setTransactions] = useState([])
-  const [calldata, setCalldata] = useState("");
-  const [safes, setSafes] = useState([])
-  const [currTxn, setCurrTxn] = useState({})
+  const [transactions, setTransactions] = useState([]);
+  const [safes, setSafes] = useState([]);
 
   const { address, isConnected } = useAccount();
   const { data: signer } = useSigner();
 
-  console.log(transactions)
+  console.log(transactions);
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
@@ -58,11 +40,9 @@ function QueuePage() {
       .get("/transaction/")
       .then((res) => {
         console.log("got response");
-        console.log(res.data)
-        const ordered = res.data.sort((a, b) => a.pk - b.pk)
-        setTransactions(ordered)
-        // here, return res.data is undefined even tho console.log works
-        // return res.data;
+        console.log(res.data);
+        const ordered = res.data.sort((a, b) => a.pk - b.pk);
+        setTransactions(ordered);
       })
       .catch((error) => {
         console.error(error);
@@ -74,39 +54,39 @@ function QueuePage() {
       .get("/safe/")
       .then((res) => {
         console.log("got response");
-        console.log(res.data)
+        console.log(res.data);
         // TODO: cleaner way of filtering for the safe
-        setSafes(res.data)
+        setSafes(res.data);
       })
       .catch((error) => {
         console.error(error);
       });
-  }
+  };
 
   // TODO: get state to update without refresh
   async function signTxn(txn, txnIndex) {
     // get address, re-generate the identity
     setCurrTxn(txn);
-    console.log(safes)
-    const currSafe = safes.filter(e => e.safe == txn.safe)[0]
+    console.log(safes);
+    const currSafe = safes.filter((e) => e.safe == txn.safe)[0];
     const identity = new Identity(address);
 
-    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(txn.nonce), 32)
+    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(txn.nonce), 32);
+    console.log(currSafe);
 
-    // get group, groupId, and filter by safe
-    
-    console.log(currSafe)
-    
     // reconstruct group
     const reconstructedGroup = new Group();
-    reconstructedGroup.addMembers(currSafe.group_members)
+    reconstructedGroup.addMembers(currSafe.group_members);
 
-    console.log(reconstructedGroup)
-    // console.log(groupId)
-    // console.log(nonce)
+    console.log(reconstructedGroup);
 
     // group.root is the external nullifier that corresponds to the group
-    const fullProof = await generateProof(identity, reconstructedGroup, currSafe.group_id, vote);
+    const fullProof = await generateProof(
+      identity,
+      reconstructedGroup,
+      currSafe.group_id,
+      vote
+    );
     console.log(fullProof);
 
     // initialized merkleTreeRoots
@@ -133,48 +113,34 @@ function QueuePage() {
       voters: voters,
     };
 
-    queue[txnIndex] = newTxn;
-    setQueue(queue);
-
     // make a post request, updating the transaction in the database
-    // id, roots, nulHashes, proofs, voters
-    const pk = transactions[txnIndex].pk
+    const pk = transactions[txnIndex].pk;
     onUpdate(pk, treeRoots, nulHashes, proofs, voters);
   }
 
   // this function just has to fix inputs, and call the execute transaction function
   async function executeTransaction(txn, txnIndex) {
-    console.log(txn)
-
-    // wei u256 value in solidity, int in js
-    // TODO: users must pass in wei - if not eth transfer ??? 
-    // const value = ethers.BigNumber.from(txn.form.value)
-
-    // const value = utils.formatEther(txn.form.value)
+    console.log(txn);
 
     const execTxn = await moduleContract.executeTransaction(
-        txn.target,
-        txn.value,
-        txn.calldata,
-        txn.operation,
-        txn.nonce,
-        txn.roots,
-        txn.nullifier_hashes,
-        txn.proofs,
-        txn.voters,
-        {gasLimit: 2000000}
+      txn.target,
+      txn.value,
+      txn.calldata,
+      txn.operation,
+      txn.nonce,
+      txn.roots,
+      txn.nullifier_hashes,
+      txn.proofs,
+      txn.voters,
+      { gasLimit: 2000000 }
     );
 
     console.log(execTxn);
 
-    // args[2] = utils.BigNumber.from(args[2])
-    // args[2] = utils.formatEther(args[2])
-
     // delete the transaction from the db
     const pk = transactions[txnIndex].pk;
     const del = onDelete(pk);
-    console.log(del)
-
+    console.log(del);
   }
 
   function getTransactionData(e, i) {

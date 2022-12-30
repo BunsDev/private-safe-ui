@@ -17,31 +17,17 @@ import {
   useContract,
   useSigner,
 } from "wagmi";
-import {
-  queueAtom,
-  nonceAtom,
-  groupAtom,
-  groupIdAtom,
-} from "../utils/atoms.js";
 import { useState, useEffect } from "react";
 import { Identity } from "@semaphore-protocol/identity";
 const { Group } = require("@semaphore-protocol/group");
-import { Subgraph } from "@semaphore-protocol/subgraph";
 import { packToSolidityProof, generateProof } from "@semaphore-protocol/proof";
 import { InjectedConnector } from "wagmi/connectors/injected";
-import { ContractFactory, ethers } from "ethers";
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
-import button from "../utils/Button.js"
-import { useAtom } from "jotai";
+import button from "../utils/Button.js";
 
 import { getCalldata } from "../helpers/txnInputs";
-import {
-  onSubmit,
-  refreshSafeTransactions,
-  onCreateSafe,
-  onUpdateSafe,
-} from "../helpers/database";
+import { onSubmit, onUpdateSafe } from "../helpers/database";
 import api from "../helpers/api.js";
 
 function TxnPage() {
@@ -49,18 +35,10 @@ function TxnPage() {
   const [value, setValue] = useState("0");
   const [func, setFunc] = useState("");
   const [args, setArgs] = useState("");
-  const [operation, setOperation] = useState("");
   const [txnType, setTxnType] = useState("");
   const [decimals, setDecimals] = useState(0);
   const [contract, setContract] = useState("");
   const [safes, setSafes] = useState([]);
-  const [currSafe, setCurrSafe] = useState({});
-  const [queue, setQueue] = useAtom(queueAtom); // an array of dictionaries, ordered by when the transaction was added
-  // const [nonce, setNonce] = useAtom(nonceAtom);
-  const [groupId, setGroupId] = useAtom(groupIdAtom);
-  const [group, setGroup] = useAtom(groupAtom);
-  const [currRoot, setCurrRoot] = useState(-1);
-
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
@@ -85,11 +63,11 @@ function TxnPage() {
   const safe = "0xC3ACf93b1AAA0c65ffd484d768576F4ce106eB4f";
 
   useEffect(() => {
-    const test = ethers.utils.parseEther("0.5")
-    console.log(test)
+    const test = ethers.utils.parseEther("0.5");
+    console.log(test);
 
-    const test1 = ethers.utils.parseEther("1")
-    console.log(test1)
+    const test1 = ethers.utils.parseEther("1");
+    console.log(test1);
 
     // TODO: find a cleaner way to get safe
     refreshSafe();
@@ -120,13 +98,13 @@ function TxnPage() {
 
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
-      console.log(commitment)
+      console.log(commitment);
 
       // add to group
       console.log(moduleContract);
       const signedId = signer.signMessage(commitment);
       const b32user = ethers.utils.formatBytes32String(signedId);
-      console.log(b32user)
+      console.log(b32user);
 
       const addSigner = await moduleContract.joinAsSigner(commitment, b32user);
 
@@ -154,22 +132,17 @@ function TxnPage() {
 
   async function initTxn() {
     const prevGId = await moduleContract.groupId();
-    console.log(prevGId)
     const curr = safes.filter((e) => e.safe == safe)[0];
     setCurrSafe(curr);
 
     // create a new group on chain
-    const newGroup = await moduleContract.newGroup({ gasLimit: 4000000, });
-    console.log(newGroup);
+    const newGroup = await moduleContract.newGroup({ gasLimit: 4000000 });
 
     // get address, re-generate the identity
     const identity = new Identity(address);
-    console.log(identity.commitment)
 
     // get group, get members
-    // const bnGroupId = await moduleContract.groupId();
     const gId = prevGId.toNumber();
-    // x
 
     setGroupId(gId);
 
@@ -180,24 +153,16 @@ function TxnPage() {
     console.log(members);
     const memberIds = members.map((e) => e.args[0].toString());
     offchainGroup.addMembers(memberIds);
-    console.log(ethers.BigNumber.from(members[0].args[0]._hex));
 
     setGroup(offchainGroup);
-    console.log(offchainGroup);
 
-    onUpdateSafe(curr.pk, memberIds)
+    onUpdateSafe(curr.pk, memberIds);
 
-    // create vote 
-    console.log(gId)
-    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(gId), 32)
-
-    console.log("vote")
-    console.log(vote)
+    // create vote
+    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(gId), 32);
 
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, offchainGroup, gId, vote);
-
-    console.log(fullProof);
 
     // initialized merkleTreeRoots
     const treeRoots = [fullProof.publicSignals.merkleRoot];
@@ -213,12 +178,6 @@ function TxnPage() {
     const voters = [vote];
 
     const sepArgs = args.split(",");
-    console.log(sepArgs);
-
-    // for eth transaction, we only need value, target, and operation
-    // data is function selector
-    console.log("printing txnType");
-    console.log(txnType);
 
     const txn = {
       safe: safe,
@@ -233,7 +192,7 @@ function TxnPage() {
         decimals: decimals,
         // abi
         contract: contract,
-        func: func
+        func: func,
       },
       roots: treeRoots,
       nullifierHashes: nulHashes,
@@ -246,9 +205,7 @@ function TxnPage() {
     txn["form"]["data"] = calldata.data;
     txn["form"]["value"] = calldata.value;
 
-    console.log(txn)
-
-    setQueue([...queue, txn]);
+    console.log(txn);
 
     // make a post request, initializing the transaction in the database
     const submitToDb = onSubmit(txn);
@@ -256,11 +213,9 @@ function TxnPage() {
   }
 
   function loadABI() {
-    setContract(
-      JSON.stringify(button["abi"])
-    )
-    setFunc("pushButton()")
-    setTarget("0xBae98f264d9c78d372a2c615b0f7FCfE7A724653")
+    setContract(JSON.stringify(button["abi"]));
+    setFunc("pushButton()");
+    setTarget("0xBae98f264d9c78d372a2c615b0f7FCfE7A724653");
   }
 
   return (
@@ -328,7 +283,7 @@ function TxnPage() {
                 </Box>
               ) : (
                 <div>
-      {/* 
+                  {/* 
       type: TransactionType.transferCollectible,
       id: "0", // not relevant for encoding the final transaction
       address: to, // ERC721 contract address
@@ -338,18 +293,18 @@ function TxnPage() {
        */}
 
                   {txnType == "ERC721" ? (
-                <Box>
-                  {/* <FormLabel>ABI</FormLabel>
+                    <Box>
+                      {/* <FormLabel>ABI</FormLabel>
                   <Textarea
                     type="string"
                     value={contract}
                     onChange={(event) => setContract(event.target.value)}
                     placeholder="contract abi"
                   /> */}
-                </Box>
-              ) : (
-                <div></div>
-              )}
+                    </Box>
+                  ) : (
+                    <div></div>
+                  )}
                 </div>
               )}
             </div>

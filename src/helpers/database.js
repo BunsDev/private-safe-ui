@@ -1,9 +1,4 @@
 import api from "./api.js";
-import { useAtom } from "jotai";
-import { transactionsAtom } from "../utils/atoms";
-import { useUpdateAtom } from 'jotai/utils'
-
-// const [transactions, setTransactions] = useAtom(transactionsAtom);
 
 // create a new transaction in database using the generated executeTransaction data
 export const onSubmit = (txn) => {
@@ -23,7 +18,6 @@ export const onSubmit = (txn) => {
   const input = JSON.stringify(t);
   api
     .post("/transaction/create/", input, { headers: { "Content-Type": "application/json" } })
-    // .then(() => refreshSafeTransactions());
     .then((res) => console.log(res))
 };
 
@@ -47,7 +41,6 @@ export const onCreateSafe = (safe, members, id) => {
   const input = JSON.stringify(t);
   api
     .post("/safe/create/", input, { headers: { "Content-Type": "application/json" } })
-    // .then(() => refreshSafeTransactions());
     .then((res) => console.log(res))
 }
 
@@ -55,9 +48,6 @@ export const onUpdateSafe = (id, members) => {
   const t = {
     group_members: members
   }
-
-  console.log(id)
-  console.log(members)
   const item = JSON.stringify(t);
   api.patch(`/safe/update/${id}/`, item, { headers: { "Content-Type": "application/json" } }).then((res) => console.log(res.data));
 }
