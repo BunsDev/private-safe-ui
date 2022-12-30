@@ -32,6 +32,7 @@ import { InjectedConnector } from "wagmi/connectors/injected";
 import { ContractFactory, ethers } from "ethers";
 import privateModule from "../utils/PrivateModule.js";
 import semaphore from "../utils/Semaphore.js";
+import button from "../utils/Button.js"
 import { useAtom } from "jotai";
 
 import { getCalldata } from "../helpers/txnInputs";
@@ -45,7 +46,7 @@ import api from "../helpers/api.js";
 
 function TxnPage() {
   const [target, setTarget] = useState("");
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState("0");
   const [func, setFunc] = useState("");
   const [args, setArgs] = useState("");
   const [operation, setOperation] = useState("");
@@ -70,13 +71,13 @@ function TxnPage() {
   const { data: signer } = useSigner();
 
   const moduleContract = useContract({
-    address: "0x5BDfc497B21D58656556703DeE95AAA475b6bA66",
+    address: "0x917247784b3feF2602b4ca363C9BD6B87e722Afd",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
 
   const semaphoreContract = useContract({
-    address: "0x5259d32659F1806ccAfcE593ED5a89eBAb85262f",
+    address: "0x98991E80649fe3751bba6CD9DA620de7Ac7E2eF2",
     abi: semaphore,
     signerOrProvider: signer,
   });
@@ -84,6 +85,12 @@ function TxnPage() {
   const safe = "0xC3ACf93b1AAA0c65ffd484d768576F4ce106eB4f";
 
   useEffect(() => {
+    const test = ethers.utils.parseEther("0.5")
+    console.log(test)
+
+    const test1 = ethers.utils.parseEther("1")
+    console.log(test1)
+
     // TODO: find a cleaner way to get safe
     refreshSafe();
   }, []);
@@ -113,11 +120,13 @@ function TxnPage() {
 
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
+      console.log(commitment)
 
       // add to group
       console.log(moduleContract);
       const signedId = signer.signMessage(commitment);
       const b32user = ethers.utils.formatBytes32String(signedId);
+      console.log(b32user)
 
       const addSigner = await moduleContract.joinAsSigner(commitment, b32user);
 
@@ -144,27 +153,23 @@ function TxnPage() {
   }
 
   async function initTxn() {
+    const prevGId = await moduleContract.groupId();
+    console.log(prevGId)
     const curr = safes.filter((e) => e.safe == safe)[0];
     setCurrSafe(curr);
 
+    // create a new group on chain
+    const newGroup = await moduleContract.newGroup({ gasLimit: 4000000, });
+    console.log(newGroup);
+
     // get address, re-generate the identity
     const identity = new Identity(address);
-
-    // get nonce
-    const bigIntNonce = await moduleContract.nonce();
-    const nonce = bigIntNonce.toNumber();
-    console.log("nonce")
-    console.log(nonce)
-
-    // const vote = ethers.utils.formatBytes32String("1");
-    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32)
-
-    console.log("vote")
-    console.log(vote)
+    console.log(identity.commitment)
 
     // get group, get members
-    const bnGroupId = await moduleContract.groupId();
-    const gId = bnGroupId.toNumber();
+    // const bnGroupId = await moduleContract.groupId();
+    const gId = prevGId.toNumber();
+    // x
 
     setGroupId(gId);
 
@@ -181,6 +186,13 @@ function TxnPage() {
     console.log(offchainGroup);
 
     onUpdateSafe(curr.pk, memberIds)
+
+    // create vote 
+    console.log(gId)
+    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(gId), 32)
+
+    console.log("vote")
+    console.log(vote)
 
     // currRoot is the external nullifier that corresponds to the group
     const fullProof = await generateProof(identity, offchainGroup, gId, vote);
@@ -210,17 +222,18 @@ function TxnPage() {
 
     const txn = {
       safe: safe,
-      nonce: nonce,
+      nonce: gId,
       form: {
         target: target,
         value: value,
         data: null,
         args: sepArgs,
-        operation: operation,
+        operation: 0,
         type: txnType,
         decimals: decimals,
         // abi
         contract: contract,
+        func: func
       },
       roots: treeRoots,
       nullifierHashes: nulHashes,
@@ -228,17 +241,26 @@ function TxnPage() {
       voters: voters,
     };
 
-    console.log(txn)
-
     // generate and update data field of txn
     const calldata = getCalldata(txn);
-    txn["form"]["data"] = calldata;
+    txn["form"]["data"] = calldata.data;
+    txn["form"]["value"] = calldata.value;
+
+    console.log(txn)
 
     setQueue([...queue, txn]);
 
     // make a post request, initializing the transaction in the database
     const submitToDb = onSubmit(txn);
     console.log(submitToDb);
+  }
+
+  function loadABI() {
+    setContract(
+      JSON.stringify(button["abi"])
+    )
+    setFunc("pushButton()")
+    setTarget("0xBae98f264d9c78d372a2c615b0f7FCfE7A724653")
   }
 
   return (
@@ -289,6 +311,12 @@ function TxnPage() {
             <div>
               {txnType == "contract" ? (
                 <Box>
+                  <FormLabel>Function Selector</FormLabel>
+                  <Input
+                    type="string"
+                    value={func}
+                    onChange={(event) => setFunc(event.target.value)}
+                  />
                   <FormLabel>ABI</FormLabel>
                   <Textarea
                     type="string"
@@ -296,18 +324,28 @@ function TxnPage() {
                     onChange={(event) => setContract(event.target.value)}
                     placeholder="contract abi"
                   />
+                  <Button onClick={loadABI}>Load Example</Button>
                 </Box>
               ) : (
                 <div>
+      {/* 
+      type: TransactionType.transferCollectible,
+      id: "0", // not relevant for encoding the final transaction
+      address: to, // ERC721 contract address
+      tokenId: a[2], // ID of the NFT
+      to: a[1], // address of recipient
+      from: a[0], // address of sender
+       */}
+
                   {txnType == "ERC721" ? (
                 <Box>
-                  <FormLabel>ABI</FormLabel>
+                  {/* <FormLabel>ABI</FormLabel>
                   <Textarea
                     type="string"
                     value={contract}
                     onChange={(event) => setContract(event.target.value)}
                     placeholder="contract abi"
-                  />
+                  /> */}
                 </Box>
               ) : (
                 <div></div>
@@ -325,16 +363,10 @@ function TxnPage() {
           />
           <FormLabel>Value</FormLabel>
           <Input
-            type="number"
+            type="string"
             value={value}
             onChange={(event) => setValue(event.target.value)}
             placeholder="Ether value (e.g. 1.0)"
-          />
-          <FormLabel>Function Selector</FormLabel>
-          <Input
-            type="string"
-            value={func}
-            onChange={(event) => setFunc(event.target.value)}
           />
           <FormLabel>Arguments</FormLabel>
           <Textarea
@@ -343,12 +375,12 @@ function TxnPage() {
             onChange={(event) => setArgs(event.target.value)}
           />
           {/* TODO: get rid of this */}
-          <FormLabel>Operation</FormLabel>
+          {/* <FormLabel>Operation</FormLabel>
           <Input
             type="string"
             value={operation}
             onChange={(event) => setOperation(event.target.value)}
-          />
+          /> */}
           <Button onClick={initTxn}>Init Transaction</Button>
         </VStack>
       </FormControl>

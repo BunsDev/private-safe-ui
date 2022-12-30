@@ -15,6 +15,7 @@ export function getCalldata(txn) {
   console.log(value);
 
   const a = txn.form.args;
+  console.log(a)
 
   const type = txn.form.type;
   console.log("printing queuepage txn type");
@@ -26,13 +27,13 @@ export function getCalldata(txn) {
       type: TransactionType.transferFunds,
       id: "0", // not relevant for encoding the final transaction
       // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
-      token: txn.to,
+      token: to,
       to: a[0], // address of recipient
       // TODO: for ERC20 transfers, do they have an ETH value associated with them?
       amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
       decimals: txn.form.decimals, // decimal places of the token
     });
-    return metaTxn.data;
+    return metaTxn;
   } else if (type == "ERC721") {
     // have user pass in recipient + tokenId
     // from to tokenId
@@ -45,7 +46,7 @@ export function getCalldata(txn) {
       // TODO: not sure about this address ,\.... safe
       from: a[0], // address of sender
     });
-    return metaTxn.data;
+    return metaTxn;
   } else if (type == "contract") {
     // TODO: take in ABI as input
     const metaTxn = encodeSingle({
@@ -54,12 +55,12 @@ export function getCalldata(txn) {
       to: to, // contract address
       value: value, // amount of wei to send
       // TODO: convert to right json string?
-      abi: txn.form.abi, // ABI as JSON string
+      abi: txn.form.contract, // ABI as JSON string
       // TODO: yea
-      functionSignature: string,
-      // inputValues: { [key: string]: ValueType }
+      functionSignature: txn.form.func,
+      inputValues: {}
     });
-    return metaTxn.data;
+    return metaTxn;
   } else if (type == "ETH") {
     const metaTxn = encodeSingle({
       type: TransactionType.transferFunds,
@@ -67,11 +68,11 @@ export function getCalldata(txn) {
       // token: txn.target | null, // ERC20 token contract address, `null` or empty string for ETH
       token: null,
       to: to, // address of recipient
-      amount: "1.0", // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
+      amount: value, // string representation of the value formatted with the token's decimal digits, e.g., "1.0" for 1 ETH
       decimals: 18, // decimal places of the token
     });
 
-    return metaTxn.data;
+    return metaTxn;
   } else {
     console.log(type);
     console.log("wrong type");

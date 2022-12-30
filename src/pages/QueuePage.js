@@ -41,7 +41,7 @@ function QueuePage() {
 
   // TODO: cleaner way of using this code?
   const moduleContract = useContract({
-    address: "0x5BDfc497B21D58656556703DeE95AAA475b6bA66",
+    address: "0x917247784b3feF2602b4ca363C9BD6B87e722Afd",
     abi: privateModule["abi"],
     signerOrProvider: signer,
   });
@@ -91,7 +91,7 @@ function QueuePage() {
     const currSafe = safes.filter(e => e.safe == txn.safe)[0]
     const identity = new Identity(address);
 
-    const vote = ethers.utils.formatBytes32String(txn.nonce);
+    const vote = ethers.utils.hexZeroPad(ethers.utils.hexlify(txn.nonce), 32)
 
     // get group, groupId, and filter by safe
     
@@ -144,26 +144,20 @@ function QueuePage() {
 
   // this function just has to fix inputs, and call the execute transaction function
   async function executeTransaction(txn, txnIndex) {
+    console.log(txn)
 
     // wei u256 value in solidity, int in js
     // TODO: users must pass in wei - if not eth transfer ??? 
     // const value = ethers.BigNumber.from(txn.form.value)
 
     // const value = utils.formatEther(txn.form.value)
-    const value = txn.value
-    console.log(value)
-    console.log(txn.voters)
 
     const execTxn = await moduleContract.executeTransaction(
-        //to,
-        "0x3be0dDA9B3657B63c2cd9e836E41903c97518088",
-        // metaTxn.value,
-        0,
-        // "1.0",
-        // currCalldata,
-        '0x',
-        // operation,
-        0,
+        txn.target,
+        txn.value,
+        txn.calldata,
+        txn.operation,
+        txn.nonce,
         txn.roots,
         txn.nullifier_hashes,
         txn.proofs,
