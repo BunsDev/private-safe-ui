@@ -66,7 +66,6 @@ function QueuePage() {
   // TODO: get state to update without refresh
   async function signTxn(txn, txnIndex) {
     // get address, re-generate the identity
-    setCurrTxn(txn);
     console.log(safes);
     const currSafe = safes.filter((e) => e.safe == txn.safe)[0];
     const identity = new Identity(address);
@@ -165,7 +164,7 @@ function QueuePage() {
           <Box>Awaiting Confirmations</Box>
         </HStack>
         <Box>Target: {e.target}</Box>
-        <Box>Calldata: {e.calldata}</Box>
+        <Box width="100%">Calldata: {e.calldata}</Box>
         <Box>Value: {e.value}</Box>
         <HStack spacing="10px">
           <Button backgroundColor="#62c4b3" onClick={() => signTxn(e, i)}>Sign</Button>

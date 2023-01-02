@@ -186,7 +186,7 @@ function HomePage() {
             placeholder=""
           />
           </Box>
-          <Box width="70%">
+          {/* <Box width="70%">
           <FormLabel>Group Id</FormLabel>
           <Input
             type="number"
@@ -194,7 +194,7 @@ function HomePage() {
             onChange={(event) => setGroupId(event.target.value)}
             placeholder="Only add a group id if your safe does not have a module"
           />
-        </Box>
+        </Box> */}
         <Box width="70%">
           <RadioGroup onChange={setNoModule} value={noModule}>
             <Stack direction="row">

@@ -9,6 +9,7 @@ import {
   Radio,
   RadioGroup,
   Stack,
+  Text
 } from "@chakra-ui/react";
 import {
   useAccount,
@@ -95,7 +96,6 @@ function TxnPage() {
       // get safe
       // TODO: remove the hardcoded safe
       const curr = safes.filter((e) => e.safe == safe)[0];
-      setCurrSafe(curr);
 
       // get the user to generate a deterministic identity
       const { trapdoor, nullifier, commitment } = new Identity(address);
@@ -134,7 +134,6 @@ function TxnPage() {
   async function initTxn() {
     const prevGId = await moduleContract.groupId();
     const curr = safes.filter((e) => e.safe == safe)[0];
-    setCurrSafe(curr);
 
     // create a new group on chain
     const newGroup = await moduleContract.newGroup({ gasLimit: 4000000 });
@@ -145,8 +144,6 @@ function TxnPage() {
     // get group, get members
     const gId = prevGId.toNumber();
 
-    setGroupId(gId);
-
     const offchainGroup = new Group();
     const members = await moduleContract.queryFilter(
       moduleContract.filters.NewUser()
@@ -154,8 +151,6 @@ function TxnPage() {
     console.log(members);
     const memberIds = members.map((e) => e.args[0].toString());
     offchainGroup.addMembers(memberIds);
-
-    setGroup(offchainGroup);
 
     onUpdateSafe(curr.pk, memberIds);
 
@@ -326,6 +321,20 @@ function TxnPage() {
             onChange={(event) => setValue(event.target.value)}
             placeholder="Ether value (e.g. 1.0)"
           />
+          {
+            txnType=="ERC20" ? 
+            <Text mt={2}>Argument 1: Destination address</Text> :
+            <Box>
+              {
+                txnType=="ERC721" ? 
+                <VStack alignItems="flex-start" mt={2}>
+                <Text>Argument 1: Sender address</Text>
+                <Text>Argument 2: Destination address</Text>
+                <Text>Argument 3: NFT ID</Text>
+                </VStack> : <div></div>
+              }
+            </Box>
+          }
           <FormLabel>Arguments</FormLabel>
           <Textarea
             placeholder="Separate arguments by comma, no space! Currently only supports non-nested arguments"
