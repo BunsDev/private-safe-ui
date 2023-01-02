@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import "./App.css";
 import TxnPage from "./pages/TxnPage.js";
 import QueuePage from "./pages/QueuePage.js";
@@ -38,8 +37,8 @@ function App() {
     <WagmiConfig client={client}>
       <ChakraProvider>
         <Router>
-          <Box p={10}>
           <NavBar />
+          <Box p={10} >
           <Routes>
             <Route path="/queue" element={<QueuePage />} />
             <Route path="/transaction" element={<TxnPage />} />

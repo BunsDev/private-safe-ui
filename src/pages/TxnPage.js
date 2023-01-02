@@ -29,6 +29,7 @@ import button from "../utils/Button.js";
 import { getCalldata } from "../helpers/txnInputs";
 import { onSubmit, onUpdateSafe } from "../helpers/database";
 import api from "../helpers/api.js";
+import { ethers } from "ethers";
 
 function TxnPage() {
   const [target, setTarget] = useState("");
@@ -219,8 +220,8 @@ function TxnPage() {
   }
 
   return (
-    <Box p={4}>
-      <VStack
+    <Box p={6} pl={8} pr={8} bg="white" borderRadius={10} width="70%" border="1px" borderColor="#E0E0E0">
+      {/* <VStack
         pb={4}
         spacing="10px"
         display="flex"
@@ -240,7 +241,7 @@ function TxnPage() {
         <Button p={4} onClick={createIdentity}>
           Create Identity
         </Button>
-      </VStack>
+      </VStack> */}
 
       <FormControl>
         <VStack spacing="10px" alignItems="flex-start">
@@ -266,20 +267,22 @@ function TxnPage() {
             <div>
               {txnType == "contract" ? (
                 <Box>
-                  <FormLabel>Function Selector</FormLabel>
-                  <Input
-                    type="string"
-                    value={func}
-                    onChange={(event) => setFunc(event.target.value)}
-                  />
-                  <FormLabel>ABI</FormLabel>
-                  <Textarea
-                    type="string"
-                    value={contract}
-                    onChange={(event) => setContract(event.target.value)}
-                    placeholder="contract abi"
-                  />
-                  <Button onClick={loadABI}>Load Example</Button>
+                  <VStack spacing="7px" alignItems="flex-start">
+                    <FormLabel>Function Selector</FormLabel>
+                    <Input
+                      type="string"
+                      value={func}
+                      onChange={(event) => setFunc(event.target.value)}
+                    />
+                    <FormLabel>ABI</FormLabel>
+                    <Textarea
+                      type="string"
+                      value={contract}
+                      onChange={(event) => setContract(event.target.value)}
+                      placeholder="Contract ABI"
+                    />
+                    <Button onClick={loadABI}>Load Example</Button>
+                  </VStack>
                 </Box>
               ) : (
                 <div>
@@ -336,7 +339,7 @@ function TxnPage() {
             value={operation}
             onChange={(event) => setOperation(event.target.value)}
           /> */}
-          <Button onClick={initTxn}>Init Transaction</Button>
+          <Button bg="white" onClick={initTxn}>Init Transaction</Button>
         </VStack>
       </FormControl>
     </Box>

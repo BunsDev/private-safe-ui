@@ -146,7 +146,7 @@ function QueuePage() {
   function getTransactionData(e, i) {
     return (
       <VStack
-        p={4}
+        p={8}
         spacing="10px"
         display="flex"
         flexDirection="column"
@@ -155,26 +155,27 @@ function QueuePage() {
         borderWidth="1px"
         borderColor="grey"
         borderStyle="solid"
+        margin="5px"
+        backgroundColor="white"
       >
-        <HStack spacing="10px" borderStyle="solid" borderColor="grey">
+        {/* <HStack spacing="10px" borderBottom= "1px solid grey"> */}
+        <HStack justifyContent="space-between" width="100%">
           <Box>{e.nonce}</Box>
-          <Box>{e.target}</Box>
-          <Box>{e.calldata}</Box>
           <Box>{e.voters.length} signers</Box>
+          <Box>Awaiting Confirmations</Box>
         </HStack>
-        <HStack spacing="10px" borderStyle="solid" borderColor="grey">
-          <Box>{e.operation}</Box>
-          <Box>{e.value}</Box>
-        </HStack>
+        <Box>Target: {e.target}</Box>
+        <Box>Calldata: {e.calldata}</Box>
+        <Box>Value: {e.value}</Box>
         <HStack spacing="10px">
-          <Button onClick={() => signTxn(e, i)}>Sign</Button>
-          <Button onClick={() => executeTransaction(e, i)}>Execute</Button>
+          <Button backgroundColor="#62c4b3" onClick={() => signTxn(e, i)}>Sign</Button>
+          <Button backgroundColor="#62c4b3" onClick={() => executeTransaction(e, i)}>Execute</Button>
         </HStack>
       </VStack>
     );
   }
 
-  return <Box p={6}>{transactions.map(getTransactionData)}</Box>;
+  return <Box pr={240} pl={240} pt={4}>{transactions.map(getTransactionData)}</Box>;
 }
 
 export default QueuePage;

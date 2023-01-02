@@ -8,6 +8,7 @@ import {
   Stack,
   RadioGroup,
   Radio,
+  Flex
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { onCreateSafe } from "../helpers/database";
@@ -155,8 +156,8 @@ function HomePage() {
   }
 
   return (
-    <Box p={4}>
-      <VStack
+    <Box p={6} pl={8} pr={8} bg="white" borderRadius={10} width="70%" border="1px" borderColor="#E0E0E0">
+      {/* <VStack
         pb={4}
         spacing="10px"
         display="flex"
@@ -173,10 +174,10 @@ function HomePage() {
             Connect Wallet
           </Button>
         )}
-      </VStack>
-
+      </VStack> */}
       <FormControl>
-        <VStack spacing="10px" alignItems="flex-start">
+        <VStack spacing="15px" alignItems="flex-start">
+          <Box width="70%">
           <FormLabel>Safe Address</FormLabel>
           <Input
             type="string"
@@ -184,6 +185,8 @@ function HomePage() {
             onChange={(event) => setSafe(event.target.value)}
             placeholder=""
           />
+          </Box>
+          <Box width="70%">
           <FormLabel>Group Id</FormLabel>
           <Input
             type="number"
@@ -191,7 +194,8 @@ function HomePage() {
             onChange={(event) => setGroupId(event.target.value)}
             placeholder="Only add a group id if your safe does not have a module"
           />
-
+        </Box>
+        <Box width="70%">
           <RadioGroup onChange={setNoModule} value={noModule}>
             <Stack direction="row">
               <Radio value={1} colorScheme="green">
@@ -202,8 +206,9 @@ function HomePage() {
               </Radio>
             </Stack>
           </RadioGroup>
+          </Box >
           {noModule == 1 ? (
-            <Box>
+            <Box width="70%">
               <FormLabel>Module Address</FormLabel>
               <Input
                 type="string"
@@ -216,10 +221,10 @@ function HomePage() {
             <div></div>
           )}
 
-          <Button onClick={initSafe}>Init Safe Module</Button>
+          <Button bg="white" onClick={initSafe}>Init Safe Module</Button>
         </VStack>
       </FormControl>
-      <Button p={4} onClick={createIdentity}>
+      <Button bg="white" p={4} mt={3} onClick={createIdentity}>
         Create Identity
       </Button>
     </Box>
